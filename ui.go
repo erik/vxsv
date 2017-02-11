@@ -1,5 +1,6 @@
 package main
 
+import "strings"
 import "github.com/nsf/termbox-go"
 
 func writeString(x, y int, fg, bg termbox.Attribute, msg string) {
@@ -9,7 +10,7 @@ func writeString(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
-func UiLoop() {
+func UiLoop(data TabularData) {
 	if err := termbox.Init(); err != nil {
 		panic(err)
 	}
@@ -18,7 +19,11 @@ func UiLoop() {
 	termbox.SetInputMode(termbox.InputEsc)
 
 	const coldef = termbox.ColorDefault
-	writeString(10, 10, coldef, coldef, "test")
+	writeString(10, 10, coldef, coldef, strings.Join(data.Columns, " ! "))
+
+	for i, row := range data.Rows {
+		writeString(10, 11+i, coldef, coldef, strings.Join(row, " | "))
+	}
 
 	termbox.Flush()
 

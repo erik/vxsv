@@ -1,7 +1,17 @@
 package main
 
-import "github.com/docopt/docopt-go"
-import "fmt"
+import (
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/docopt/docopt-go"
+)
+
+type TabularData struct {
+	Columns []string
+	Rows    [][]string
+}
 
 func main() {
 	usage := `view [x] separated values
@@ -20,17 +30,28 @@ Options:
   -p --psql                   parse output of psql tool, when used as a pager.
 `
 
-	args, _ := docopt.Parse(usage, nil, true, "v0", false)
+	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
+
+	var reader io.Reader
+	var data TabularData
 
 	// default to stdin if we don't have an explicit file passed in
-	if args["<PATH>"] == nil {
-		args["<PATH>"] = "-"
+	if args["<PATH>"] != nil {
+		file_name, _ := args["<PATH>"].(string)
+		file, err := os.Open(file_name)
+		if err != nil {
+			panic("Failed to open file")
+		}
+
+		reader = io.Reader(file)
+	} else {
+		reader = io.Reader(os.Stdin)
 	}
 
 	if args["--psql"] == true {
-
+		data = ReadPsqlTable(reader)
 	}
 
 	fmt.Println(args)
-	UiLoop()
+	UiLoop(data)
 }
