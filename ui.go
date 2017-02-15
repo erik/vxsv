@@ -19,10 +19,12 @@ func UiLoop(data TabularData) {
 	termbox.SetInputMode(termbox.InputEsc)
 
 	const coldef = termbox.ColorDefault
-	writeString(10, 10, coldef, coldef, strings.Join(data.Columns, " ! "))
+	writeString(0, 0, coldef, coldef, strings.Join(data.Columns, " ┋ "))
+
+	//writeString(0, 0)
 
 	for i, row := range data.Rows {
-		writeString(10, 11+i, coldef, coldef, strings.Join(row, " | "))
+		writeString(0, 1+i, coldef, coldef, strings.Join(row, " │ "))
 	}
 
 	termbox.Flush()

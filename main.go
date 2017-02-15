@@ -9,6 +9,7 @@ import (
 )
 
 type TabularData struct {
+	Width   int
 	Columns []string
 	Rows    [][]string
 }
@@ -32,10 +33,11 @@ Options:
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 
-	var reader io.Reader
 	var data TabularData
 
 	// default to stdin if we don't have an explicit file passed in
+	reader := io.Reader(os.Stdin)
+
 	if args["<PATH>"] != nil {
 		file_name, _ := args["<PATH>"].(string)
 		file, err := os.Open(file_name)
@@ -44,8 +46,6 @@ Options:
 		}
 
 		reader = io.Reader(file)
-	} else {
-		reader = io.Reader(os.Stdin)
 	}
 
 	if args["--psql"] == true {
