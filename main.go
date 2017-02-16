@@ -8,9 +8,15 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
+type Column struct {
+	Name  string
+	Width int
+	// TODO: type
+}
+
 type TabularData struct {
 	Width   int
-	Columns []string
+	Columns []Column
 	Rows    [][]string
 }
 

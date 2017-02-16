@@ -11,7 +11,7 @@ func ReadPsqlTable(reader io.Reader) TabularData {
 	scanner.Scan()
 
 	columnString := scanner.Text()
-	columns, spans := parseColumns(columnString)
+	columns := parseColumns(columnString)
 
 	// Skip the horizontal line
 	scanner.Scan()
@@ -25,7 +25,7 @@ func ReadPsqlTable(reader io.Reader) TabularData {
 			break
 		}
 
-		rows = append(rows, parseRow(spans, scanner.Text()))
+		rows = append(rows, parseRow(columns, scanner.Text()))
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -39,39 +39,40 @@ func ReadPsqlTable(reader io.Reader) TabularData {
 	}
 }
 
-func parseColumns(columnString string) ([]string, [][]int) {
+func parseColumns(columnString string) []Column {
 	split := strings.Split(columnString, " | ")
 
-	columns := make([]string, len(split))
-	spans := make([][]int, len(split))
-
-	last_offset := 0
+	columns := make([]Column, len(split))
 
 	for i, col := range split {
-		columns[i] = strings.TrimSpace(col)
-		spans[i] = []int{last_offset, last_offset + len(col)}
-
-		last_offset += len(col) + 3
+		columns[i] = Column{
+			Name:  strings.TrimSpace(col),
+			Width: len(col),
+		}
 	}
 
-	// Make sure we skip the leading space
-	if last_offset > 0 {
-		spans[0][0] += 1
-	}
+	// Make sure we skip the leading space in the fist column
+	columns[0].Width -= 1
 
-	return columns, spans
+	return columns
 }
 
-func parseRow(spans [][]int, str string) []string {
-	row := make([]string, len(spans))
+// TODO: doesn't handle multi-line rows
+func parseRow(columns []Column, str string) []string {
+	row := make([]string, len(columns))
 
-	for i, span := range spans {
+	// Skip leading space
+	offset := 1
+
+	for i, col := range columns {
 		// Make sure we don't over shoot the string length
-		if span[1] >= len(str) {
-			row[i] = str[span[0]:len(str)]
+		if offset+col.Width >= len(str) {
+			row[i] = str[offset:len(str)]
 		} else {
-			row[i] = str[span[0]:span[1]]
+			row[i] = str[offset : offset+col.Width]
 		}
+
+		offset += col.Width + 3
 	}
 
 	return row
