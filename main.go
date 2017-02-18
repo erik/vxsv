@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	_ "fmt"
 	"io"
 	"os"
 
@@ -9,8 +9,9 @@ import (
 )
 
 type Column struct {
-	Name  string
-	Width int
+	Name      string
+	Width     int
+	Collapsed bool
 	// TODO: type
 }
 
@@ -58,6 +59,10 @@ Options:
 		data = ReadPsqlTable(reader)
 	}
 
-	fmt.Println(args)
-	UiLoop(data)
+	ui := NewUi(data)
+	if err := ui.Init(); err != nil {
+		panic(err)
+	}
+
+	ui.Loop()
 }

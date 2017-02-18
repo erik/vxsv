@@ -46,12 +46,13 @@ func parseColumns(columnString string) []Column {
 
 	for i, col := range split {
 		columns[i] = Column{
-			Name:  strings.TrimSpace(col),
-			Width: len(col),
+			Name:      strings.TrimSpace(col),
+			Width:     len(col),
+			Collapsed: false,
 		}
 	}
 
-	// Make sure we skip the leading space in the fist column
+	// Make sure we skip the leading space in the first column
 	columns[0].Width -= 1
 
 	return columns
