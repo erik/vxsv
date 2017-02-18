@@ -14,6 +14,17 @@ const (
 	ModeRowSelect
 )
 
+// It is so dumb that go doesn't have this
+func clamp(val, lo, hi int) int {
+	if val < lo {
+		return lo
+	} else if val > hi {
+		return hi
+	}
+
+	return val
+}
+
 func writeString(x, y int, fg, bg termbox.Attribute, msg string) {
 	for _, c := range msg {
 		termbox.SetCell(x, y, c, fg, bg)
@@ -209,15 +220,11 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowRight:
 		ui.offsetX -= 5
 	case ev.Key == termbox.KeyArrowLeft:
-		if ui.offsetX < 0 {
-			ui.offsetX += 5
-		}
+		ui.offsetX = clamp(ui.offsetX+5, 0, ui.data.Width)
 	case ev.Key == termbox.KeyArrowUp:
-		if ui.offsetY > 0 {
-			ui.offsetY -= 1
-		}
+		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.data.Rows))
 	case ev.Key == termbox.KeyArrowDown:
-		ui.offsetY += 1
+		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.data.Rows))
 	case ev.Ch == '/':
 		ui.mode = ModeFilter
 		ui.filterString = ""
