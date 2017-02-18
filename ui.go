@@ -228,8 +228,16 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Ch == '/':
 		ui.mode = ModeFilter
 		ui.filterString = ""
-	case ev.Ch == 'w':
-		ui.data.Columns[0].Collapsed = !ui.data.Columns[0].Collapsed
+		ui.offsetY = 0
+	case ev.Ch == 'C':
+		ui.mode = ModeColumnSelect
+		ui.offsetX = 0
+		ui.colIdx = 0
+	case ev.Ch == 'G':
+		_, height := termbox.Size()
+		ui.offsetY = len(ui.data.Rows) - (height - 3)
+	case ev.Ch == 'g':
+		ui.offsetY = 0
 	case ui.mode == ModeDefault && ev.Ch == 'q':
 		panic("TODO: real exit")
 	}
