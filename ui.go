@@ -4,6 +4,8 @@ import "strings"
 import "github.com/nsf/termbox-go"
 
 const MAX_CELL_WIDTH = 20
+const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
+const HILITE_BG = termbox.ColorWhite
 
 type inputMode int
 
@@ -16,9 +18,9 @@ const (
 
 // It is so dumb that go doesn't have this
 func clamp(val, lo, hi int) int {
-	if val < lo {
+	if val <= lo {
 		return lo
-	} else if val > hi {
+	} else if val >= hi {
 		return hi
 	}
 
@@ -32,8 +34,18 @@ func writeString(x, y int, fg, bg termbox.Attribute, msg string) {
 	}
 }
 
-func writeColumns(x, y int, fg, bg termbox.Attribute, cols []Column) {
-	for i, col := range cols {
+func (ui *UI) writeColumns(x, y int) {
+	var fg, bg termbox.Attribute
+
+	for i, col := range ui.data.Columns {
+		if i == ui.colIdx && ui.mode == ModeColumnSelect {
+			fg = HILITE_FG
+			bg = HILITE_BG
+		} else {
+			fg = termbox.ColorWhite
+			bg = termbox.ColorBlack | termbox.AttrBold
+		}
+
 		if col.Collapsed {
 			writeString(x, y, fg, bg, "…")
 			x += 1
@@ -47,24 +59,33 @@ func writeColumns(x, y int, fg, bg termbox.Attribute, cols []Column) {
 			}
 		}
 
-		if i < len(cols)-1 {
-			writeString(x, y, fg, bg, " │ ")
+		if i < len(ui.data.Columns)-1 {
+			writeString(x, y, termbox.ColorWhite, termbox.ColorDefault, " │ ")
 			x += 3
 		}
 	}
 }
 
-func (ui UI) writeRow(x, y int, row []string) {
+func (ui *UI) writeRow(x, y int, row []string) {
 	const def = termbox.ColorDefault
+	var fg, bg termbox.Attribute
 
 	for i, col := range ui.data.Columns {
+		if i == ui.colIdx && ui.mode == ModeColumnSelect {
+			fg = HILITE_FG
+			bg = HILITE_BG
+		} else {
+			fg = def
+			bg = def
+		}
+
 		if col.Collapsed {
-			writeString(x, y, termbox.ColorWhite, def, "…")
+			writeString(x, y, fg, bg, "…")
 			x += 1
 		} else {
-			writeString(x, y, def, def, row[i])
+			writeString(x, y, fg, bg, row[i])
 			if col.Width > MAX_CELL_WIDTH {
-				writeString(x+MAX_CELL_WIDTH-1, y, def, def, "…")
+				writeString(x+MAX_CELL_WIDTH-1, y, fg, bg, "…")
 				x += MAX_CELL_WIDTH
 			} else {
 				x += col.Width
@@ -92,6 +113,7 @@ func NewUi(data TabularData) UI {
 		offsetX: 0,
 		offsetY: 0,
 		mode:    ModeDefault,
+		colIdx:  -1,
 	}
 }
 
@@ -121,7 +143,8 @@ eventloop:
 			switch ui.mode {
 			case ModeFilter:
 				ui.handleKeyFilter(ev)
-
+			case ModeColumnSelect:
+				ui.handleKeyColumnSelect(ev)
 			default:
 				ui.handleKeyDefault(ev)
 			}
@@ -166,7 +189,7 @@ func (ui *UI) repaint() {
 
 	const coldef = termbox.ColorDefault
 
-	writeColumns(ui.offsetX+0, 0, termbox.ColorWhite, termbox.ColorBlack|termbox.AttrBold, ui.data.Columns)
+	ui.writeColumns(ui.offsetX+0, 0)
 
 	rowIdx := ui.filterRows(height - 2)
 
@@ -181,6 +204,9 @@ func (ui *UI) repaint() {
 	switch ui.mode {
 	case ModeFilter:
 		line := "FILTER (^g quit): " + ui.filterString
+		writeString(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
+	case ModeColumnSelect:
+		line := "COLUMN SELECT (^g quit) [" + ui.data.Columns[ui.colIdx].Name + "]"
 		writeString(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	default:
 		writeString(0, height-1, termbox.ColorDefault, termbox.ColorDefault, ":")
@@ -215,12 +241,44 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 	ui.offsetY = 0
 }
 
+func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
+	switch {
+	case ev.Key == termbox.KeyArrowRight:
+		ui.colIdx = clamp(ui.colIdx+1, 0, len(ui.data.Columns)-1)
+	case ev.Key == termbox.KeyArrowLeft:
+		ui.colIdx = clamp(ui.colIdx-1, 0, len(ui.data.Columns)-1)
+	case ev.Ch == 'w':
+		ui.data.Columns[ui.colIdx].Collapsed = !ui.data.Columns[ui.colIdx].Collapsed
+	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
+		ui.mode = ModeDefault
+	default:
+		ui.handleKeyDefault(ev)
+	}
+
+	// find if we've gone off screen and readjust
+	cursorPosition := 0
+	for i, col := range ui.data.Columns {
+		if i == ui.colIdx {
+			break
+		}
+		//cursorPosition += 3
+		if !col.Collapsed {
+			cursorPosition += col.Width
+		}
+	}
+
+	width, _ := termbox.Size()
+	if cursorPosition > width-ui.offsetX || cursorPosition < -ui.offsetX {
+		ui.offsetX = -cursorPosition
+	}
+}
+
 func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	switch {
 	case ev.Key == termbox.KeyArrowRight:
-		ui.offsetX -= 5
+		ui.offsetX = clamp(ui.offsetX-5, -ui.data.Width, 0)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.offsetX = clamp(ui.offsetX+5, 0, ui.data.Width)
+		ui.offsetX = clamp(ui.offsetX+5, -ui.data.Width, 0)
 	case ev.Key == termbox.KeyArrowUp:
 		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.data.Rows))
 	case ev.Key == termbox.KeyArrowDown:
