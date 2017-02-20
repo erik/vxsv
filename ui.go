@@ -250,6 +250,7 @@ func (ui *UI) filterRows(num int) []int {
 
 func (ui *UI) repaint() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	termbox.HideCursor()
 	_, height := termbox.Size()
 
 	const coldef = termbox.ColorDefault
@@ -274,6 +275,7 @@ func (ui *UI) repaint() {
 		}
 		line := fmt.Sprintf("FILTER [%d%s matches]: %s", len(rowIdx), ext, ui.filterString)
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
+		termbox.SetCursor(len(line), height-1)
 	case ModeColumnSelect:
 		line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
