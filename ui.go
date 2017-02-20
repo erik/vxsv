@@ -76,7 +76,8 @@ func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) 
 		x = writeString(x, y, fg, bg, cell[:width])
 		x = writeString(x, y, fg, bg, "…")
 	} else {
-		writeString(x, y, fg, bg, cell)
+		fmtString := "%-" + strconv.Itoa(colOpts.width) + "s"
+		writeString(x, y, fg, bg, fmt.Sprintf(fmtString, cell))
 		x += colOpts.width
 	}
 
@@ -345,12 +346,12 @@ func (ui *UI) findNextColumn(current, direction int) int {
 		}
 	}
 
-	// Don't fall off the end
+	// Don't fall off the end (would cause confusing behavior)
 	if isPinned && direction < 0 || !isPinned && direction > 0 {
 		return current
 	}
 
-	// there are no remaining pinned / unpinned, just find next col
+	// we're crossing the pinned/unpinned boundary
 	i := 0
 	if direction < 0 {
 		i = len(ui.columns) - 1
