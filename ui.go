@@ -374,6 +374,12 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 
 func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	switch {
+	case ev.Key == termbox.KeyCtrlA:
+		ui.offsetX = 0
+	case ev.Key == termbox.KeyCtrlE:
+		// FIXME: this is buggy
+		w, _ := termbox.Size()
+		ui.offsetX = -ui.width + w*2
 	case ev.Key == termbox.KeyArrowRight:
 		ui.offsetX = clamp(ui.offsetX-5, -ui.width, 0)
 	case ev.Key == termbox.KeyArrowLeft:
