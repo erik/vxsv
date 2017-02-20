@@ -266,7 +266,11 @@ func (ui *UI) repaint() {
 
 	switch ui.mode {
 	case ModeFilter:
-		line := "FILTER (^g quit): " + ui.filterString
+		ext := ""
+		if len(rowIdx) == height-2 {
+			ext = "+"
+		}
+		line := fmt.Sprintf("FILTER [%d%s matches]: %s", len(rowIdx), ext, ui.filterString)
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	case ModeColumnSelect:
 		line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
@@ -275,13 +279,18 @@ func (ui *UI) repaint() {
 		first := 0
 		last := 0
 		total := len(ui.rows) - 1
+		filter := ""
 
 		if len(rowIdx) >= 2 {
 			first = rowIdx[0]
 			last = rowIdx[len(rowIdx)-1]
 		}
 
-		line := fmt.Sprintf("[rows %d-%d of %d] :", first, last, total)
+		if ui.filterString != "" {
+			filter = fmt.Sprintf("[filter: \"%s\"] ", ui.filterString)
+		}
+
+		line := fmt.Sprintf("%s[rows %d-%d of %d] :", filter, first, last, total)
 		writeLine(0, height-1, termbox.ColorDefault, termbox.ColorDefault, line)
 	}
 
@@ -291,7 +300,7 @@ func (ui *UI) repaint() {
 func (ui *UI) handleKeyFilter(ev termbox.Event) {
 	// Ch == 0 implies this was a special key
 	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
-		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
+		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG || ev.Key == termbox.KeyEnter {
 			ui.mode = ModeDefault
 		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
 			ev.Key == termbox.KeyBackspace2 {
