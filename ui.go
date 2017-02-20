@@ -220,7 +220,8 @@ eventloop:
 func (ui *UI) filterRows(num int) []int {
 	rows := make([]int, 0, num)
 
-	if ui.mode != ModeFilter {
+	// fast pass
+	if ui.filterString == "" {
 		for i := 0; i < num; i += 1 {
 			if i+ui.offsetY >= len(ui.rows) {
 				break
