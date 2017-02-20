@@ -153,6 +153,7 @@ type UI struct {
 	rowIdx, colIdx   int // Selection control
 	offsetX, offsetY int // Pan control
 	filterString     string
+	filterMatches    []int
 	zebraStripe      bool
 	columnOpts       []columnOptions
 	columns          []string
@@ -163,6 +164,7 @@ type UI struct {
 func NewUi(data TabularData) UI {
 	colOpts := make([]columnOptions, len(data.Columns))
 	columns := make([]string, len(data.Columns))
+	filterMatches := make([]int, len(data.Rows))
 
 	for i, col := range data.Columns {
 		columns[i] = col.Name
@@ -174,16 +176,22 @@ func NewUi(data TabularData) UI {
 		}
 	}
 
+	for i, _ := range data.Rows {
+		filterMatches[i] = i
+	}
+
 	return UI{
-		offsetX:     0,
-		offsetY:     0,
-		mode:        ModeDefault,
-		colIdx:      -1,
-		columnOpts:  colOpts,
-		rows:        data.Rows,
-		columns:     columns,
-		width:       data.Width,
-		zebraStripe: false,
+		offsetX:       0,
+		offsetY:       0,
+		mode:          ModeDefault,
+		colIdx:        -1,
+		columnOpts:    colOpts,
+		rows:          data.Rows,
+		columns:       columns,
+		width:         data.Width,
+		zebraStripe:   false,
+		filterString:  "",
+		filterMatches: filterMatches,
 	}
 }
 
@@ -225,33 +233,37 @@ eventloop:
 }
 
 // Return indices of rows to display
-func (ui *UI) filterRows(num int) []int {
-	rows := make([]int, 0, num)
+func (ui *UI) filterRows(narrowing bool) {
 
-	// fast pass
-	if ui.filterString == "" {
-		for i := 0; i < num; i += 1 {
-			if i+ui.offsetY >= len(ui.rows) {
-				break
-			}
-			rows = append(rows, i+ui.offsetY)
-		}
-	} else {
-		for i := 0; i < num; i += 1 {
-			if i+ui.offsetY >= len(ui.rows) {
-				break
-			}
+	// If we are adding a character to the filter, no need to start from
+	// scratch, this will be a strict subset of our current filter.
+	if narrowing {
+		rows := make([]int, 0, len(ui.filterMatches))
 
-			for _, col := range ui.rows[i+ui.offsetY] {
+		for _, rowIdx := range ui.filterMatches {
+			for _, col := range ui.rows[rowIdx] {
 				if strings.Contains(col, ui.filterString) {
-					rows = append(rows, i+ui.offsetY)
+					rows = append(rows, rowIdx)
 					break
 				}
 			}
 		}
-	}
 
-	return rows
+		ui.filterMatches = rows
+	} else {
+		rows := make([]int, 0, 100)
+
+		for i := 0; i+ui.offsetY < len(ui.rows); i += 1 {
+			for _, col := range ui.rows[i+ui.offsetY] {
+				if ui.filterString == "" || strings.Contains(col, ui.filterString) {
+					rows = append(rows, i)
+					break
+				}
+			}
+		}
+
+		ui.filterMatches = rows
+	}
 }
 
 func (ui *UI) repaint() {
@@ -263,11 +275,9 @@ func (ui *UI) repaint() {
 
 	ui.writeColumns(ui.offsetX+0, 0)
 
-	rowIdx := ui.filterRows(height - 2)
-
 	for i := 0; i < height-2; i += 1 {
-		if i < len(rowIdx) {
-			ui.writeRow(ui.offsetX+0, i+1, ui.rows[rowIdx[i]])
+		if i+ui.offsetY < len(ui.filterMatches) {
+			ui.writeRow(ui.offsetX+0, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
 		} else {
 			writeLine(0, i+1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack, "~")
 		}
@@ -275,26 +285,17 @@ func (ui *UI) repaint() {
 
 	switch ui.mode {
 	case ModeFilter:
-		ext := ""
-		if len(rowIdx) == height-2 {
-			ext = "+"
-		}
-		line := fmt.Sprintf("FILTER [%d%s matches]: %s", len(rowIdx), ext, ui.filterString)
+		line := fmt.Sprintf("FILTER [%d matches]: %s", len(ui.filterMatches), ui.filterString)
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 		termbox.SetCursor(len(line), height-1)
 	case ModeColumnSelect:
 		line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	default:
-		first := 0
-		last := 0
-		total := len(ui.rows) - 1
+		first := ui.offsetY
+		last := clamp(ui.offsetY+height, 0, len(ui.filterMatches))
+		total := len(ui.filterMatches) - 1
 		filter := ""
-
-		if len(rowIdx) >= 2 {
-			first = rowIdx[0]
-			last = rowIdx[len(rowIdx)-1]
-		}
 
 		if ui.filterString != "" {
 			filter = fmt.Sprintf("[filter: \"%s\"] ", ui.filterString)
@@ -316,6 +317,7 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 			ev.Key == termbox.KeyBackspace2 {
 			if sz := len(ui.filterString); sz > 0 {
 				ui.filterString = ui.filterString[:sz-1]
+				ui.filterRows(false)
 			}
 		} else {
 			// Fallback to default handling for arrows etc
@@ -331,6 +333,7 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 	}
 
 	ui.offsetY = 0
+	ui.filterRows(true)
 }
 
 var globalExpanded = false
@@ -434,7 +437,6 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.rows))
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.mode = ModeFilter
-		ui.filterString = ""
 		ui.offsetY = 0
 	case ev.Ch == 'C':
 		ui.mode = ModeColumnSelect
