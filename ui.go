@@ -388,7 +388,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.rows))
 	case ev.Key == termbox.KeyArrowDown:
 		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.rows))
-	case ev.Ch == '/':
+	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.mode = ModeFilter
 		ui.filterString = ""
 		ui.offsetY = 0
