@@ -46,9 +46,8 @@ func parseColumns(columnString string) []Column {
 
 	for i, col := range split {
 		columns[i] = Column{
-			Name:      strings.TrimSpace(col),
-			Width:     len(col),
-			Collapsed: false,
+			Name:  strings.TrimSpace(col),
+			Width: len(col),
 		}
 	}
 

@@ -9,9 +9,8 @@ import (
 )
 
 type Column struct {
-	Name      string
-	Width     int
-	Collapsed bool
+	Name  string
+	Width int
 	// TODO: type
 }
 

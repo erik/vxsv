@@ -1,7 +1,9 @@
 package main
 
+import "fmt"
 import "strings"
 import "github.com/nsf/termbox-go"
+import "strconv"
 
 const MAX_CELL_WIDTH = 20
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
@@ -27,42 +29,63 @@ func clamp(val, lo, hi int) int {
 	return val
 }
 
-func writeString(x, y int, fg, bg termbox.Attribute, msg string) {
+func writeString(x, y int, fg, bg termbox.Attribute, msg string) int {
 	for _, c := range msg {
 		termbox.SetCell(x, y, c, fg, bg)
 		x += 1
 	}
+	return x
+}
+
+var cellFmtString = "%" + strconv.Itoa(MAX_CELL_WIDTH) + "s"
+
+func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) int {
+	colOpts := ui.columnOpts[index]
+	lastCol := index == len(ui.columnOpts)-1
+
+	if colOpts.collapsed {
+		x = writeString(x, y, fg, bg, "…")
+	} else if !colOpts.expanded && len(cell) < MAX_CELL_WIDTH {
+		padded := fmt.Sprintf(cellFmtString, cell)
+		x = writeString(x, y, fg, bg, padded)
+	} else if !colOpts.expanded && !lastCol {
+		width := clamp(len(cell)-1, 0, MAX_CELL_WIDTH-1)
+		x = writeString(x, y, fg, bg, cell[:width])
+		x = writeString(x, y, fg, bg, "…")
+	} else {
+		writeString(x, y, fg, bg, cell)
+		x += colOpts.width
+	}
+
+	// Draw separator if this isn't the last element
+	if index != len(ui.columns)-1 {
+		x = writeString(x, y, termbox.ColorRed, termbox.ColorDefault, " │ ")
+	}
+
+	return x
+}
+
+func (ui *UI) writePinnedCells(x, y int, fg, bg termbox.Attribute, row []string) int {
+
+	for i, cell := range row {
+		x = ui.writeCell(cell, x, y, i, fg, bg)
+	}
+
+	return x
 }
 
 func (ui *UI) writeColumns(x, y int) {
 	var fg, bg termbox.Attribute
 
-	for i, col := range ui.data.Columns {
+	for i, col := range ui.columns {
 		if i == ui.colIdx && ui.mode == ModeColumnSelect {
-			fg = HILITE_FG
-			bg = HILITE_BG
+			fg = termbox.ColorWhite | termbox.AttrBold
+			bg = termbox.ColorBlack
 		} else {
-			fg = termbox.ColorWhite
-			bg = termbox.ColorBlack | termbox.AttrBold
+			fg = termbox.ColorBlack | termbox.AttrBold
+			bg = termbox.ColorWhite
 		}
-
-		if col.Collapsed {
-			writeString(x, y, fg, bg, "…")
-			x += 1
-		} else {
-			writeString(x, y, fg, bg, col.Name)
-
-			if col.Width > MAX_CELL_WIDTH {
-				x += MAX_CELL_WIDTH
-			} else {
-				x += col.Width
-			}
-		}
-
-		if i < len(ui.data.Columns)-1 {
-			writeString(x, y, termbox.ColorWhite, termbox.ColorDefault, " │ ")
-			x += 3
-		}
+		x = ui.writeCell(col, x, y, i, fg, bg)
 	}
 }
 
@@ -70,7 +93,7 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	const def = termbox.ColorDefault
 	var fg, bg termbox.Attribute
 
-	for i, col := range ui.data.Columns {
+	for i, _ := range ui.columns {
 		if i == ui.colIdx && ui.mode == ModeColumnSelect {
 			fg = HILITE_FG
 			bg = HILITE_BG
@@ -79,41 +102,51 @@ func (ui *UI) writeRow(x, y int, row []string) {
 			bg = def
 		}
 
-		if col.Collapsed {
-			writeString(x, y, fg, bg, "…")
-			x += 1
-		} else {
-			writeString(x, y, fg, bg, row[i])
-			if col.Width > MAX_CELL_WIDTH {
-				writeString(x+MAX_CELL_WIDTH-1, y, fg, bg, "…")
-				x += MAX_CELL_WIDTH
-			} else {
-				x += col.Width
-			}
-		}
-
-		if i < len(ui.data.Columns)-1 {
-			writeString(x, y, termbox.ColorRed, def, " │ ")
-			x += 3
-		}
+		x = ui.writeCell(row[i], x, y, i, fg, bg)
 	}
 }
 
+type columnOptions struct {
+	expanded  bool
+	collapsed bool
+	pinned    bool
+	width     int
+}
+
 type UI struct {
-	data             TabularData
 	mode             inputMode
 	rowIdx, colIdx   int // Selection control
 	offsetX, offsetY int // Pan control
 	filterString     string
+	columnOpts       []columnOptions
+	columns          []string
+	rows             [][]string
+	width            int
 }
 
 func NewUi(data TabularData) UI {
+	colOpts := make([]columnOptions, len(data.Columns))
+	columns := make([]string, len(data.Columns))
+
+	for i, col := range data.Columns {
+		columns[i] = col.Name
+		colOpts[i] = columnOptions{
+			expanded:  col.Width < MAX_CELL_WIDTH,
+			collapsed: false,
+			pinned:    false,
+			width:     col.Width,
+		}
+	}
+
 	return UI{
-		data:    data,
-		offsetX: 0,
-		offsetY: 0,
-		mode:    ModeDefault,
-		colIdx:  -1,
+		offsetX:    0,
+		offsetY:    0,
+		mode:       ModeDefault,
+		colIdx:     -1,
+		columnOpts: colOpts,
+		rows:       data.Rows,
+		columns:    columns,
+		width:      data.Width,
 	}
 }
 
@@ -160,18 +193,18 @@ func (ui *UI) filterRows(num int) []int {
 
 	if ui.mode != ModeFilter {
 		for i := 0; i < num; i += 1 {
-			if i+ui.offsetY >= len(ui.data.Rows) {
+			if i+ui.offsetY >= len(ui.rows) {
 				break
 			}
 			rows = append(rows, i+ui.offsetY)
 		}
 	} else {
 		for i := 0; i < num; i += 1 {
-			if i+ui.offsetY >= len(ui.data.Rows) {
+			if i+ui.offsetY >= len(ui.rows) {
 				break
 			}
 
-			for _, col := range ui.data.Rows[i+ui.offsetY] {
+			for _, col := range ui.rows[i+ui.offsetY] {
 				if strings.Contains(col, ui.filterString) {
 					rows = append(rows, i+ui.offsetY)
 					break
@@ -195,7 +228,7 @@ func (ui *UI) repaint() {
 
 	for i := 0; i < height-2; i += 1 {
 		if i < len(rowIdx) {
-			ui.writeRow(ui.offsetX+0, i+1, ui.data.Rows[rowIdx[i]])
+			ui.writeRow(ui.offsetX+0, i+1, ui.rows[rowIdx[i]])
 		} else {
 			writeString(0, i+1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack, "~")
 		}
@@ -206,7 +239,7 @@ func (ui *UI) repaint() {
 		line := "FILTER (^g quit): " + ui.filterString
 		writeString(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	case ModeColumnSelect:
-		line := "COLUMN SELECT (^g quit) [" + ui.data.Columns[ui.colIdx].Name + "]"
+		line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
 		writeString(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	default:
 		writeString(0, height-1, termbox.ColorDefault, termbox.ColorDefault, ":")
@@ -241,14 +274,23 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 	ui.offsetY = 0
 }
 
+var globalExpanded = false
+
 func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	switch {
 	case ev.Key == termbox.KeyArrowRight:
-		ui.colIdx = clamp(ui.colIdx+1, 0, len(ui.data.Columns)-1)
+		ui.colIdx = clamp(ui.colIdx+1, 0, len(ui.columns)-1)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.colIdx = clamp(ui.colIdx-1, 0, len(ui.data.Columns)-1)
+		ui.colIdx = clamp(ui.colIdx-1, 0, len(ui.columns)-1)
 	case ev.Ch == 'w':
-		ui.data.Columns[ui.colIdx].Collapsed = !ui.data.Columns[ui.colIdx].Collapsed
+		ui.columnOpts[ui.colIdx].collapsed = !ui.columnOpts[ui.colIdx].collapsed
+	case ev.Ch == 'x':
+		ui.columnOpts[ui.colIdx].expanded = !ui.columnOpts[ui.colIdx].expanded
+		if ui.columnOpts[ui.colIdx].expanded {
+			ui.columnOpts[ui.colIdx].collapsed = false
+		}
+	case ev.Ch == '.':
+		ui.columnOpts[ui.colIdx].pinned = !ui.columnOpts[ui.colIdx].pinned
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
 		ui.mode = ModeDefault
 	default:
@@ -256,14 +298,17 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	}
 
 	// find if we've gone off screen and readjust
+	// TODO: this bit is buggy
 	cursorPosition := 0
-	for i, col := range ui.data.Columns {
+	for i, _ := range ui.columns {
+		colOpts := ui.columnOpts[i]
+
 		if i == ui.colIdx {
 			break
 		}
 		//cursorPosition += 3
-		if !col.Collapsed {
-			cursorPosition += col.Width
+		if !colOpts.collapsed {
+			cursorPosition += colOpts.width
 		}
 	}
 
@@ -276,13 +321,13 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	switch {
 	case ev.Key == termbox.KeyArrowRight:
-		ui.offsetX = clamp(ui.offsetX-5, -ui.data.Width, 0)
+		ui.offsetX = clamp(ui.offsetX-5, -ui.width, 0)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.offsetX = clamp(ui.offsetX+5, -ui.data.Width, 0)
+		ui.offsetX = clamp(ui.offsetX+5, -ui.width, 0)
 	case ev.Key == termbox.KeyArrowUp:
-		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.data.Rows))
+		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.rows))
 	case ev.Key == termbox.KeyArrowDown:
-		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.data.Rows))
+		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.rows))
 	case ev.Ch == '/':
 		ui.mode = ModeFilter
 		ui.filterString = ""
@@ -293,9 +338,15 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		ui.colIdx = 0
 	case ev.Ch == 'G':
 		_, height := termbox.Size()
-		ui.offsetY = len(ui.data.Rows) - (height - 3)
+		ui.offsetY = len(ui.rows) - (height - 3)
 	case ev.Ch == 'g':
 		ui.offsetY = 0
+	case ev.Ch == 'X':
+		for i, _ := range ui.columnOpts {
+			ui.columnOpts[i].expanded = !globalExpanded
+		}
+		globalExpanded = !globalExpanded
+
 	case ui.mode == ModeDefault && ev.Ch == 'q':
 		panic("TODO: real exit")
 	}
