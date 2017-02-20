@@ -1,9 +1,12 @@
 package main
 
-import "fmt"
-import "strings"
-import "github.com/nsf/termbox-go"
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/nsf/termbox-go"
+)
 
 const MAX_CELL_WIDTH = 20
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
@@ -332,12 +335,45 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 var globalExpanded = false
 var endOfLinePosition = 0
 
+func (ui *UI) findNextColumn(current, direction int) int {
+	isPinned := ui.columnOpts[current].pinned
+
+	// if pinned, find the next pinned col, or vice versa for unpinned
+	for i := current + direction; i >= 0 && i < len(ui.columns); i += direction {
+		if ui.columnOpts[i].pinned == isPinned {
+			return i
+		}
+	}
+
+	// Don't fall off the end
+	if isPinned && direction < 0 || !isPinned && direction > 0 {
+		return current
+	}
+
+	// there are no remaining pinned / unpinned, just find next col
+	i := 0
+	if direction < 0 {
+		i = len(ui.columns) - 1
+	}
+	for ; i >= 0 && i < len(ui.columns); i += direction {
+		if (isPinned && !ui.columnOpts[i].pinned) || (!isPinned && ui.columnOpts[i].pinned) {
+			return i
+		}
+	}
+
+	return current
+}
+
 func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	switch {
 	case ev.Key == termbox.KeyArrowRight:
-		ui.colIdx = clamp(ui.colIdx+1, 0, len(ui.columns)-1)
+		next := ui.findNextColumn(ui.colIdx, 1)
+		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
+
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.colIdx = clamp(ui.colIdx-1, 0, len(ui.columns)-1)
+		next := ui.findNextColumn(ui.colIdx, -1)
+		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
+
 	case ev.Ch == 'w':
 		ui.columnOpts[ui.colIdx].collapsed = !ui.columnOpts[ui.colIdx].collapsed
 	case ev.Ch == 'x':
