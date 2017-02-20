@@ -52,7 +52,7 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	}
 }
 
-var cellFmtString = "%" + strconv.Itoa(MAX_CELL_WIDTH) + "s"
+var cellFmtString = "%-" + strconv.Itoa(MAX_CELL_WIDTH) + "s"
 
 func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) int {
 	colOpts := ui.columnOpts[index]
@@ -118,19 +118,19 @@ func (ui *UI) writeColumns(x, y int) {
 }
 
 func (ui *UI) writeRow(x, y int, row []string) {
-	const def = termbox.ColorDefault
-	var fg, bg termbox.Attribute
+	fg := termbox.ColorDefault
+
+	if ui.zebraStripe && y%2 == 0 {
+		fg = termbox.ColorMagenta
+	}
 
 	x += ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
 
 	for i, _ := range ui.columns {
 		colOpts := ui.columnOpts[i]
 
-		fg = def
-		bg = def
-
 		if !colOpts.pinned {
-			x = ui.writeCell(row[i], x, y, i, fg, bg)
+			x = ui.writeCell(row[i], x, y, i, fg, termbox.ColorDefault)
 		}
 	}
 }
@@ -147,6 +147,7 @@ type UI struct {
 	rowIdx, colIdx   int // Selection control
 	offsetX, offsetY int // Pan control
 	filterString     string
+	zebraStripe      bool
 	columnOpts       []columnOptions
 	columns          []string
 	rows             [][]string
@@ -168,14 +169,15 @@ func NewUi(data TabularData) UI {
 	}
 
 	return UI{
-		offsetX:    0,
-		offsetY:    0,
-		mode:       ModeDefault,
-		colIdx:     -1,
-		columnOpts: colOpts,
-		rows:       data.Rows,
-		columns:    columns,
-		width:      data.Width,
+		offsetX:     0,
+		offsetY:     0,
+		mode:        ModeDefault,
+		colIdx:      -1,
+		columnOpts:  colOpts,
+		rows:        data.Rows,
+		columns:     columns,
+		width:       data.Width,
+		zebraStripe: false,
 	}
 }
 
@@ -401,6 +403,8 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		ui.offsetY = len(ui.rows) - (height - 3)
 	case ev.Ch == 'g':
 		ui.offsetY = 0
+	case ev.Ch == 'Z':
+		ui.zebraStripe = !ui.zebraStripe
 	case ev.Ch == 'X':
 		for i, _ := range ui.columnOpts {
 			ui.columnOpts[i].expanded = !globalExpanded
