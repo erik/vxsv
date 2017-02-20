@@ -56,6 +56,15 @@ Options:
 
 	if args["--psql"] == true {
 		data = ReadPsqlTable(reader)
+	} else {
+		delimiter := ','
+		if args["-t"] == true {
+			delimiter = '\t'
+		} else if args["-d"] != nil {
+			delimiter, _ = args["-d"].(rune)
+		}
+
+		data = ReadCSVFile(reader, delimiter)
 	}
 
 	ui := NewUi(data)

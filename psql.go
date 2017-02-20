@@ -15,7 +15,6 @@ func ReadPsqlTable(reader io.Reader) TabularData {
 
 	// Skip the horizontal line
 	scanner.Scan()
-	width := len(scanner.Text())
 
 	rows := [][]string{}
 
@@ -33,7 +32,6 @@ func ReadPsqlTable(reader io.Reader) TabularData {
 	}
 
 	return TabularData{
-		Width:   width,
 		Columns: columns,
 		Rows:    rows,
 	}

@@ -115,6 +115,8 @@ func (ui *UI) writeColumns(x, y int) {
 			x = ui.writeCell(col, x, y, i, fg, bg)
 		}
 	}
+
+	endOfLinePosition = x
 }
 
 func (ui *UI) writeRow(x, y int, row []string) {
@@ -328,6 +330,7 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 }
 
 var globalExpanded = false
+var endOfLinePosition = 0
 
 func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	switch {
@@ -383,11 +386,11 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Key == termbox.KeyCtrlE:
 		// FIXME: this is buggy
 		w, _ := termbox.Size()
-		ui.offsetX = -ui.width + w*2
+		ui.offsetX = -endOfLinePosition + w
 	case ev.Key == termbox.KeyArrowRight:
-		ui.offsetX = clamp(ui.offsetX-5, -ui.width, 0)
+		ui.offsetX = clamp(ui.offsetX-5, -endOfLinePosition, 0)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.offsetX = clamp(ui.offsetX+5, -ui.width, 0)
+		ui.offsetX = clamp(ui.offsetX+5, -endOfLinePosition, 0)
 	case ev.Key == termbox.KeyArrowUp:
 		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.rows))
 	case ev.Key == termbox.KeyArrowDown:
