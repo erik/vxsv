@@ -271,7 +271,17 @@ func (ui *UI) repaint() {
 		line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	default:
-		writeLine(0, height-1, termbox.ColorDefault, termbox.ColorDefault, ":")
+		first := 0
+		last := 0
+		total := len(ui.rows) - 1
+
+		if len(rowIdx) >= 2 {
+			first = rowIdx[0]
+			last = rowIdx[len(rowIdx)-1]
+		}
+
+		line := fmt.Sprintf("[rows %d-%d of %d] :", first, last, total)
+		writeLine(0, height-1, termbox.ColorDefault, termbox.ColorDefault, line)
 	}
 
 	termbox.Flush()
