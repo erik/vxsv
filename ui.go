@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 )
 
 const MAX_CELL_WIDTH = 20
+const CELL_SEPARATOR = " │ "
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
 const HILITE_BG = termbox.ColorWhite
 
@@ -44,6 +46,7 @@ func writeString(x, y int, fg, bg termbox.Attribute, msg string) int {
 	return x
 }
 
+// Fill entire line of screen
 func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	width, _ := termbox.Size()
 	for _, c := range line {
@@ -83,7 +86,7 @@ func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) 
 
 	// Draw separator if this isn't the last element
 	if index != len(ui.columns)-1 {
-		x = writeString(x, y, termbox.ColorRed, termbox.ColorDefault, " │ ")
+		x = writeString(x, y, termbox.ColorRed, termbox.ColorDefault, CELL_SEPARATOR)
 	}
 
 	return x
@@ -377,7 +380,18 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowLeft:
 		next := ui.findNextColumn(ui.colIdx, -1)
 		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
-
+	case ev.Ch == '<':
+		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
+			row1 := ui.rows[ui.filterMatches[i]]
+			row2 := ui.rows[ui.filterMatches[j]]
+			return row1[ui.colIdx] < row2[ui.colIdx]
+		})
+	case ev.Ch == '>':
+		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
+			row1 := ui.rows[ui.filterMatches[i]]
+			row2 := ui.rows[ui.filterMatches[j]]
+			return row1[ui.colIdx] > row2[ui.colIdx]
+		})
 	case ev.Ch == 'w':
 		ui.columnOpts[ui.colIdx].collapsed = !ui.columnOpts[ui.colIdx].collapsed
 	case ev.Ch == 'x':
