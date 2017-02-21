@@ -447,21 +447,23 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 }
 
 func (ui *UI) handleKeyDefault(ev termbox.Event) {
+	// FIXME: this is buggy
+	w, h := termbox.Size()
+	maxYOffset := clamp(len(ui.filterMatches)-(h-5), 0, len(ui.filterMatches)-1)
+
 	switch {
 	case ev.Key == termbox.KeyCtrlA:
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
-		// FIXME: this is buggy
-		w, _ := termbox.Size()
 		ui.offsetX = -endOfLinePosition + w
 	case ev.Key == termbox.KeyArrowRight:
 		ui.offsetX = clamp(ui.offsetX-5, -endOfLinePosition, 0)
 	case ev.Key == termbox.KeyArrowLeft:
 		ui.offsetX = clamp(ui.offsetX+5, -endOfLinePosition, 0)
 	case ev.Key == termbox.KeyArrowUp:
-		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.filterMatches))
+		ui.offsetY = clamp(ui.offsetY-1, 0, maxYOffset)
 	case ev.Key == termbox.KeyArrowDown:
-		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.filterMatches))
+		ui.offsetY = clamp(ui.offsetY+1, 0, maxYOffset)
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.mode = ModeFilter
 		ui.offsetY = 0
@@ -470,8 +472,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		ui.offsetX = 0
 		ui.colIdx = 0
 	case ev.Ch == 'G':
-		_, height := termbox.Size()
-		ui.offsetY = len(ui.filterMatches) - (height - 3)
+		ui.offsetY = maxYOffset
 	case ev.Ch == 'g':
 		ui.offsetY = 0
 	case ev.Ch == 'Z':
