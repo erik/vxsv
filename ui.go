@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"encoding/json"
 	"github.com/nsf/termbox-go"
 )
 
@@ -469,6 +470,32 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.mode = ModeFilter
 		ui.offsetY = 0
+	case ev.Ch == 'P':
+		jsonObj := make(map[string]interface{})
+
+		row := ui.rows[ui.offsetY]
+		for i, col := range ui.columns {
+			str := row[i]
+
+			if v, err := strconv.ParseInt(str, 10, 64); err == nil {
+				jsonObj[col] = v
+			} else if v, err := strconv.ParseFloat(str, 64); err == nil {
+				jsonObj[col] = v
+			} else if v, err := strconv.ParseBool(str); err == nil {
+				jsonObj[col] = v
+			} else {
+				jsonObj[col] = str
+			}
+
+		}
+
+		jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("\n\n\n%s\n\n\n", string(jsonStr))
+
 	case ev.Ch == 'C':
 		ui.mode = ModeColumnSelect
 		ui.offsetX = 0
