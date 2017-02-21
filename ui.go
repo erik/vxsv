@@ -203,7 +203,7 @@ func (ui *UI) Init() error {
 		return err
 	}
 
-	termbox.SetInputMode(termbox.InputEsc | termbox.InputMouse)
+	termbox.SetInputMode(termbox.InputEsc)
 
 	return nil
 }
