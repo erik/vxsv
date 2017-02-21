@@ -459,9 +459,9 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowLeft:
 		ui.offsetX = clamp(ui.offsetX+5, -endOfLinePosition, 0)
 	case ev.Key == termbox.KeyArrowUp:
-		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.rows))
+		ui.offsetY = clamp(ui.offsetY-1, 0, len(ui.filterMatches))
 	case ev.Key == termbox.KeyArrowDown:
-		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.rows))
+		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.filterMatches))
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.mode = ModeFilter
 		ui.offsetY = 0
@@ -471,7 +471,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		ui.colIdx = 0
 	case ev.Ch == 'G':
 		_, height := termbox.Size()
-		ui.offsetY = len(ui.rows) - (height - 3)
+		ui.offsetY = len(ui.filterMatches) - (height - 3)
 	case ev.Ch == 'g':
 		ui.offsetY = 0
 	case ev.Ch == 'Z':
