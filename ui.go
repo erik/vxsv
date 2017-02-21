@@ -371,6 +371,20 @@ func (ui *UI) findNextColumn(current, direction int) int {
 	return current
 }
 
+func (ui *UI) rowSorter(i, j int) bool {
+	row1 := ui.rows[ui.filterMatches[i]]
+	row2 := ui.rows[ui.filterMatches[j]]
+
+	v1, err1 := strconv.ParseFloat(row1[ui.colIdx], 32)
+	v2, err2 := strconv.ParseFloat(row2[ui.colIdx], 32)
+
+	if err1 == nil && err2 == nil {
+		return v1 < v2
+	}
+
+	return row1[ui.colIdx] < row2[ui.colIdx]
+}
+
 func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	switch {
 	case ev.Key == termbox.KeyArrowRight:
@@ -382,15 +396,11 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
 	case ev.Ch == '<':
 		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
-			row1 := ui.rows[ui.filterMatches[i]]
-			row2 := ui.rows[ui.filterMatches[j]]
-			return row1[ui.colIdx] < row2[ui.colIdx]
+			return ui.rowSorter(i, j)
 		})
 	case ev.Ch == '>':
 		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
-			row1 := ui.rows[ui.filterMatches[i]]
-			row2 := ui.rows[ui.filterMatches[j]]
-			return row1[ui.colIdx] > row2[ui.colIdx]
+			return ui.rowSorter(j, i)
 		})
 	case ev.Ch == 'w':
 		ui.columnOpts[ui.colIdx].collapsed = !ui.columnOpts[ui.colIdx].collapsed
