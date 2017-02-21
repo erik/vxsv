@@ -452,6 +452,8 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	maxYOffset := clamp(len(ui.filterMatches)-(h-5), 0, len(ui.filterMatches)-1)
 
 	switch {
+	case ev.Key == termbox.KeyCtrlL:
+		termbox.Sync()
 	case ev.Key == termbox.KeyCtrlA:
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
