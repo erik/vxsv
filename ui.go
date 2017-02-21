@@ -322,6 +322,9 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 				ui.filterString = ui.filterString[:sz-1]
 				ui.filterRows(false)
 			}
+		} else if ev.Key == termbox.KeyCtrlW || ev.Key == termbox.KeyCtrlU {
+			ui.filterString = ""
+			ui.filterRows(false)
 		} else {
 			// Fallback to default handling for arrows etc
 			ui.handleKeyDefault(ev)
