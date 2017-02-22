@@ -540,6 +540,8 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 			content: strings.Split(string(jsonStr), "\n"),
 		}
 
+	case ev.Key == termbox.KeySpace:
+		ui.offsetY = clamp(ui.offsetY+(h-2), 0, maxYOffset)
 	case ev.Ch == 'C':
 		ui.mode = ModeColumnSelect
 		ui.offsetX = 0
