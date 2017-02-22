@@ -12,6 +12,7 @@ import (
 
 const MAX_CELL_WIDTH = 20
 const CELL_SEPARATOR = " │ "
+
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
 const HILITE_BG = termbox.ColorWhite
 
@@ -22,7 +23,34 @@ const (
 	ModeFilter
 	ModeColumnSelect
 	ModeRowSelect
+	ModePopup
 )
+
+type columnOptions struct {
+	expanded  bool
+	collapsed bool
+	pinned    bool
+	width     int
+}
+
+type popup struct {
+	content          []string
+	offsetX, offsetY int
+}
+
+type UI struct {
+	mode             inputMode
+	rowIdx, colIdx   int // Selection control
+	offsetX, offsetY int // Pan control
+	filterString     string
+	filterMatches    []int
+	zebraStripe      bool
+	columnOpts       []columnOptions
+	columns          []string
+	rows             [][]string
+	width            int
+	popup            popup
+}
 
 // It is so dumb that go doesn't have this
 func clamp(val, lo, hi int) int {
@@ -56,6 +84,33 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	}
 	for i := x; i < width; i += 1 {
 		termbox.SetCell(x+i, y, ' ', fg, bg)
+	}
+}
+
+func (p *popup) repaint() {
+	w, h := termbox.Size()
+
+	w = clamp(w, 50, 120)
+	h = clamp(len(p.content)+2, 10, 80)
+
+	fmtString := "│ %-" + strconv.Itoa(w) + "s │"
+	// const BOX_CHARS = []string{"╭", "─", "╮", "│", "╰", "╯"}
+	y := 10
+
+	for i := 0; i < h; i += 1 {
+		content := ""
+
+		if i < len(p.content) {
+			content = p.content[i]
+		}
+
+		x := 10
+		for _, c := range fmt.Sprintf(fmtString, content) {
+			termbox.SetCell(x, y, c, termbox.ColorWhite, termbox.ColorDefault)
+			x += 1
+		}
+
+		y += 1
 	}
 }
 
@@ -145,26 +200,6 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	}
 }
 
-type columnOptions struct {
-	expanded  bool
-	collapsed bool
-	pinned    bool
-	width     int
-}
-
-type UI struct {
-	mode             inputMode
-	rowIdx, colIdx   int // Selection control
-	offsetX, offsetY int // Pan control
-	filterString     string
-	filterMatches    []int
-	zebraStripe      bool
-	columnOpts       []columnOptions
-	columns          []string
-	rows             [][]string
-	width            int
-}
-
 func NewUi(data TabularData) UI {
 	colOpts := make([]columnOptions, len(data.Columns))
 	columns := make([]string, len(data.Columns))
@@ -227,6 +262,8 @@ eventloop:
 				ui.handleKeyFilter(ev)
 			case ModeColumnSelect:
 				ui.handleKeyColumnSelect(ev)
+			case ModePopup:
+				ui.handleKeyPopup(ev)
 			default:
 				ui.handleKeyDefault(ev)
 			}
@@ -294,6 +331,10 @@ func (ui *UI) repaint() {
 		termbox.SetCursor(len(line), height-1)
 	case ModeColumnSelect:
 		line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
+		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
+	case ModePopup:
+		ui.popup.repaint()
+		line := "POPUP (^g quit)"
 		writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	default:
 		first := ui.offsetY
@@ -494,7 +535,10 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 			panic(err)
 		}
 
-		fmt.Printf("\n\n\n%s\n\n\n", string(jsonStr))
+		ui.mode = ModePopup
+		ui.popup = popup{
+			content: strings.Split(string(jsonStr), "\n"),
+		}
 
 	case ev.Ch == 'C':
 		ui.mode = ModeColumnSelect
@@ -516,5 +560,11 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 
 	case ui.mode == ModeDefault && ev.Ch == 'q':
 		panic("TODO: real exit")
+	}
+}
+
+func (ui *UI) handleKeyPopup(ev termbox.Event) {
+	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG || ev.Ch == 'q' {
+		ui.mode = ModeDefault
 	}
 }
