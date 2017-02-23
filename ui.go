@@ -63,13 +63,19 @@ func clamp(val, lo, hi int) int {
 	return val
 }
 
-var pinnedBounds = 0
+func writeStringBounded(x, y, bound int, fg, bg termbox.Attribute, msg string) int {
+	for _, c := range msg {
+		if x >= bound {
+			termbox.SetCell(x, y, c, fg, bg)
+		}
+		x += 1
+	}
+	return x
+}
 
 func writeString(x, y int, fg, bg termbox.Attribute, msg string) int {
 	for _, c := range msg {
-		if x >= pinnedBounds {
-			termbox.SetCell(x, y, c, fg, bg)
-		}
+		termbox.SetCell(x, y, c, fg, bg)
 		x += 1
 	}
 	return x
@@ -90,33 +96,29 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 func (p *popup) repaint() {
 	w, h := termbox.Size()
 
-	w = clamp(w, 50, 120)
-	h = clamp(len(p.content)+2, 10, 80)
+	paddingX := int(0.02 * float64(w))
+	paddingY := int(0.2 * float64(h))
 
-	fmtString := "│ %-" + strconv.Itoa(w) + "s │"
-	// const BOX_CHARS = []string{"╭", "─", "╮", "│", "╰", "╯"}
-	y := 10
+	popupW := w - paddingX*2
+	popupH := clamp(len(p.content)+2, 10, h-5)
 
-	for i := 0; i < h; i += 1 {
+	fmtString := "│ %-" + strconv.Itoa(popupW) + "s │"
+
+	for i := 0; i < popupH; i += 1 {
+		y := paddingY + i
 		content := ""
 
 		if i < len(p.content) {
 			content = p.content[i]
 		}
 
-		x := 10
-		for _, c := range fmt.Sprintf(fmtString, content) {
-			termbox.SetCell(x, y, c, termbox.ColorWhite, termbox.ColorDefault)
-			x += 1
-		}
-
-		y += 1
+		writeString(paddingX, y, termbox.ColorWhite, termbox.ColorDefault, fmt.Sprintf(fmtString, content))
 	}
 }
 
 var cellFmtString = "%-" + strconv.Itoa(MAX_CELL_WIDTH) + "s"
 
-func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) int {
+func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.Attribute) int {
 	colOpts := ui.columnOpts[index]
 	lastCol := index == len(ui.columnOpts)-1
 
@@ -126,17 +128,17 @@ func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) 
 	}
 
 	if colOpts.collapsed {
-		x = writeString(x, y, fg, bg, "…")
+		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
 	} else if !colOpts.expanded && len(cell) < MAX_CELL_WIDTH {
 		padded := fmt.Sprintf(cellFmtString, cell)
-		x = writeString(x, y, fg, bg, padded)
+		x = writeStringBounded(x, y, pinBound, fg, bg, padded)
 	} else if !colOpts.expanded && !lastCol {
 		width := clamp(len(cell)-1, 0, MAX_CELL_WIDTH-1)
-		x = writeString(x, y, fg, bg, cell[:width])
-		x = writeString(x, y, fg, bg, "…")
+		x = writeStringBounded(x, y, pinBound, fg, bg, cell[:width])
+		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
 	} else {
 		fmtString := "%-" + strconv.Itoa(colOpts.width) + "s"
-		writeString(x, y, fg, bg, fmt.Sprintf(fmtString, cell))
+		writeStringBounded(x, y, pinBound, fg, bg, fmt.Sprintf(fmtString, cell))
 		x += colOpts.width
 	}
 
@@ -150,13 +152,13 @@ func (ui *UI) writeCell(cell string, x, y, index int, fg, bg termbox.Attribute) 
 
 func (ui *UI) writePinned(y int, fg, bg termbox.Attribute, row []string) int {
 	// ignore our view offsets
-	pinnedBounds = 0
+	pinnedBounds := 0
 
 	for i, cell := range row {
 		colOpts := ui.columnOpts[i]
 
 		if colOpts.pinned {
-			pinnedBounds = ui.writeCell(cell, pinnedBounds, y, i, fg, bg)
+			pinnedBounds = ui.writeCell(cell, pinnedBounds, y, i, -1, fg, bg)
 		}
 	}
 
@@ -166,7 +168,7 @@ func (ui *UI) writePinned(y int, fg, bg termbox.Attribute, row []string) int {
 func (ui *UI) writeColumns(x, y int) {
 	var fg, bg termbox.Attribute
 
-	x += ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, ui.columns)
+	pinBound := ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, ui.columns)
 
 	for i, col := range ui.columns {
 		colOpts := ui.columnOpts[i]
@@ -175,7 +177,7 @@ func (ui *UI) writeColumns(x, y int) {
 		bg = termbox.ColorWhite
 
 		if !colOpts.pinned {
-			x = ui.writeCell(col, x, y, i, fg, bg)
+			x = ui.writeCell(col, x, y, i, pinBound, fg, bg)
 		}
 	}
 
@@ -189,13 +191,13 @@ func (ui *UI) writeRow(x, y int, row []string) {
 		fg = termbox.ColorMagenta
 	}
 
-	x += ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
+	pinBound := ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
 
 	for i, _ := range ui.columns {
 		colOpts := ui.columnOpts[i]
 
 		if !colOpts.pinned {
-			x = ui.writeCell(row[i], x, y, i, fg, termbox.ColorDefault)
+			x = ui.writeCell(row[i], x, y, i, pinBound, fg, termbox.ColorDefault)
 		}
 	}
 }
