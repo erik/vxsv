@@ -1,7 +1,6 @@
 package main
 
 import (
-	_ "fmt"
 	"io"
 	"os"
 
@@ -60,8 +59,12 @@ Options:
 		delimiter := ','
 		if args["-t"] == true {
 			delimiter = '\t'
-		} else if args["-d"] != nil {
-			delimiter, _ = args["-d"].(rune)
+		} else if args["--delimiter"] != nil {
+			if delimiterStr, ok := args["--delimiter"].(string); !ok {
+				panic("Couldn't grab delimiter")
+			} else {
+				delimiter = []rune(delimiterStr)[0]
+			}
 		}
 
 		data = ReadCSVFile(reader, delimiter)
