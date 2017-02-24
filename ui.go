@@ -144,7 +144,7 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 
 	// Draw separator if this isn't the last element
 	if index != len(ui.columns)-1 {
-		x = writeString(x, y, termbox.ColorRed, termbox.ColorDefault, CELL_SEPARATOR)
+		x = writeStringBounded(x, y, pinBound, termbox.ColorRed, termbox.ColorDefault, CELL_SEPARATOR)
 	}
 
 	return x
@@ -169,6 +169,7 @@ func (ui *UI) writeColumns(x, y int) {
 	var fg, bg termbox.Attribute
 
 	pinBound := ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, ui.columns)
+	x += pinBound
 
 	for i, col := range ui.columns {
 		colOpts := ui.columnOpts[i]
@@ -192,6 +193,7 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	}
 
 	pinBound := ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
+	x += pinBound
 
 	for i, _ := range ui.columns {
 		colOpts := ui.columnOpts[i]
