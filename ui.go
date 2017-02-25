@@ -96,23 +96,41 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 func (p *popup) repaint() {
 	w, h := termbox.Size()
 
-	paddingX := int(0.02 * float64(w))
-	paddingY := int(0.2 * float64(h))
-
-	popupW := w - paddingX*2
+	popupW := clamp(120, 80, w-5)
 	popupH := clamp(len(p.content)+2, 10, h-5)
 
-	fmtString := "│ %-" + strconv.Itoa(popupW) + "s │"
+	x := w/2 - popupW/2
+	y := h/2 - popupH/2
 
-	for i := 0; i < popupH; i += 1 {
-		y := paddingY + i
-		content := ""
+	fmtString := "%s %-" + strconv.Itoa(popupW) + "s %s"
 
-		if i < len(p.content) {
-			content = p.content[i]
+	borders := [][]string{
+		[]string{"", "╮"},
+		[]string{"│", "│"},
+		[]string{"╰", "╯"},
+	}
+
+	for i := -1; i <= popupH; i += 1 {
+		var border []string
+		var content string
+
+		if i == -1 {
+			border = borders[0]
+			content = strings.Repeat("─", popupW-2)
+		} else if i < popupH {
+			border = borders[1]
+			if i < len(p.content) {
+				content = p.content[i]
+			} else {
+				content = " "
+			}
+		} else {
+			border = borders[2]
+			content = strings.Repeat("─", popupW-2)
 		}
 
-		writeString(paddingX, y, termbox.ColorWhite, termbox.ColorDefault, fmt.Sprintf(fmtString, content))
+		line := fmt.Sprintf(fmtString, border[0], content, border[1])
+		writeString(x, y+i, termbox.ColorWhite, termbox.ColorDefault, line)
 	}
 }
 
