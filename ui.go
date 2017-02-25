@@ -181,8 +181,6 @@ func (ui *UI) writeColumns(x, y int) {
 			x = ui.writeCell(col, x, y, i, pinBound, fg, bg)
 		}
 	}
-
-	endOfLinePosition = x
 }
 
 func (ui *UI) writeRow(x, y int, row []string) {
@@ -357,6 +355,28 @@ func (ui *UI) repaint() {
 	termbox.Flush()
 }
 
+func (ui *UI) endOfLine() int {
+	x := 0
+
+	for i, _ := range ui.columns {
+		colOpts := ui.columnOpts[i]
+
+		if !colOpts.pinned {
+			if colOpts.collapsed {
+				x += 1
+			} else if colOpts.expanded {
+				x += colOpts.width
+			} else {
+				x += clamp(colOpts.width, 1, MAX_CELL_WIDTH)
+			}
+
+			x += len(CELL_SEPARATOR)
+		}
+	}
+
+	return x
+}
+
 func (ui *UI) handleKeyFilter(ev termbox.Event) {
 	// Ch == 0 implies this was a special key
 	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
@@ -389,7 +409,6 @@ func (ui *UI) handleKeyFilter(ev termbox.Event) {
 }
 
 var globalExpanded = false
-var endOfLinePosition = 0
 
 func (ui *UI) findNextColumn(current, direction int) int {
 	isPinned := ui.columnOpts[current].pinned
@@ -493,9 +512,9 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 }
 
 func (ui *UI) handleKeyDefault(ev termbox.Event) {
-	// FIXME: this is buggy
 	w, h := termbox.Size()
 	maxYOffset := clamp(len(ui.filterMatches)-(h-5), 0, len(ui.filterMatches)-1)
+	endOfLine := ui.endOfLine()
 
 	switch {
 	case ev.Key == termbox.KeyCtrlL:
@@ -503,11 +522,11 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Key == termbox.KeyCtrlA:
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
-		ui.offsetX = -endOfLinePosition + w
+		ui.offsetX = clamp(-endOfLine+w, -endOfLine, 0)
 	case ev.Key == termbox.KeyArrowRight:
-		ui.offsetX = clamp(ui.offsetX-5, -endOfLinePosition, 0)
+		ui.offsetX = clamp(ui.offsetX-5, -endOfLine, 0)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.offsetX = clamp(ui.offsetX+5, -endOfLinePosition, 0)
+		ui.offsetX = clamp(ui.offsetX+5, -endOfLine, 0)
 	case ev.Key == termbox.KeyArrowUp:
 		ui.offsetY = clamp(ui.offsetY-1, 0, maxYOffset)
 	case ev.Key == termbox.KeyArrowDown:
