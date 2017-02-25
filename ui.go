@@ -313,12 +313,13 @@ func (ui *UI) repaint() {
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	termbox.HideCursor()
 	_, height := termbox.Size()
+	_, vh := ui.viewSize()
 
 	const coldef = termbox.ColorDefault
 
 	ui.writeColumns(ui.offsetX+0, 0)
 
-	for i := 0; i < height-2; i += 1 {
+	for i := 0; i < vh; i += 1 {
 		if i+ui.offsetY < len(ui.filterMatches) {
 			ui.writeRow(ui.offsetX+0, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
 		} else {
@@ -353,6 +354,11 @@ func (ui *UI) repaint() {
 	}
 
 	termbox.Flush()
+}
+
+func (ui *UI) viewSize() (int, int) {
+	width, height := termbox.Size()
+	return width, height - 2
 }
 
 func (ui *UI) endOfLine() int {
@@ -512,8 +518,9 @@ func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 }
 
 func (ui *UI) handleKeyDefault(ev termbox.Event) {
-	w, h := termbox.Size()
-	maxYOffset := clamp(len(ui.filterMatches)-(h-5), 0, len(ui.filterMatches)-1)
+	vw, vh := ui.viewSize()
+
+	maxYOffset := clamp(len(ui.filterMatches)-(vh-2), 0, len(ui.filterMatches)-1)
 	endOfLine := ui.endOfLine()
 
 	switch {
@@ -522,7 +529,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Key == termbox.KeyCtrlA:
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
-		ui.offsetX = clamp(-endOfLine+w, -endOfLine, 0)
+		ui.offsetX = clamp(-endOfLine+vw, -endOfLine, 0)
 	case ev.Key == termbox.KeyArrowRight:
 		ui.offsetX = clamp(ui.offsetX-5, -endOfLine, 0)
 	case ev.Key == termbox.KeyArrowLeft:
@@ -564,7 +571,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		}
 
 	case ev.Key == termbox.KeySpace:
-		ui.offsetY = clamp(ui.offsetY+(h-2), 0, maxYOffset)
+		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
 	case ev.Ch == 'C':
 		ui.mode = ModeColumnSelect
 		ui.offsetX = 0
