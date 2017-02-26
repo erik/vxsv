@@ -1,17 +1,18 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 
-	"encoding/json"
 	"github.com/nsf/termbox-go"
 )
 
 const MAX_CELL_WIDTH = 20
 const CELL_SEPARATOR = " │ "
+const ROW_INDICATOR = '»'
 
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
 const HILITE_BG = termbox.ColorWhite
@@ -205,7 +206,7 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 
 	// Draw separator if this isn't the last element
 	if index != len(ui.columns)-1 {
-		x = writeStringBounded(x, y, pinBound, termbox.ColorRed, termbox.ColorDefault, CELL_SEPARATOR)
+		x = writeStringBounded(x, y, pinBound, termbox.ColorWhite, termbox.ColorDefault, CELL_SEPARATOR)
 	}
 
 	return x
@@ -227,16 +228,14 @@ func (ui *UI) writePinned(y int, fg, bg termbox.Attribute, row []string) int {
 }
 
 func (ui *UI) writeColumns(x, y int) {
-	var fg, bg termbox.Attribute
+	fg := termbox.ColorBlack | termbox.AttrBold
+	bg := termbox.ColorWhite
 
 	pinBound := ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, ui.columns)
 	x += pinBound
 
 	for i, col := range ui.columns {
 		colOpts := ui.columnOpts[i]
-
-		fg = termbox.ColorBlack | termbox.AttrBold
-		bg = termbox.ColorWhite
 
 		if !colOpts.pinned {
 			x = ui.writeCell(col, x, y, i, pinBound, fg, bg)
@@ -292,6 +291,7 @@ func NewUi(data TabularData) UI {
 		columns:       columns,
 		width:         data.Width,
 		zebraStripe:   false,
+		filters:       []filter{},
 		filterString:  "",
 		filterMatches: filterMatches,
 	}
@@ -378,11 +378,11 @@ func (ui *UI) repaint() {
 
 	const coldef = termbox.ColorDefault
 
-	ui.writeColumns(ui.offsetX+0, 0)
+	ui.writeColumns(ui.offsetX, 0)
 
 	for i := 0; i < vh; i += 1 {
 		if i+ui.offsetY < len(ui.filterMatches) {
-			ui.writeRow(ui.offsetX+0, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
+			ui.writeRow(ui.offsetX, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
 		} else {
 			writeLine(0, i+1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack, "~")
 		}
@@ -442,6 +442,16 @@ func (ui *UI) endOfLine() int {
 	}
 
 	return x
+}
+
+// TODO: Write me, stop manually scrolling
+func (ui *UI) scroll(rows int) {
+
+}
+
+// TODO: Write me, stop manually panning
+func (ui *UI) panTo(col int) {
+
 }
 
 func (ui *UI) handleKeyFilter(ev termbox.Event) {
@@ -602,7 +612,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.mode = ModeFilter
 		ui.offsetY = 0
-	case ev.Ch == 'P':
+	case ev.Key == termbox.KeyEnter:
 		jsonObj := make(map[string]interface{})
 
 		row := ui.rows[ui.offsetY]
@@ -622,6 +632,7 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 		}
 
 		jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
+		// TODO: This should be handled
 		if err != nil {
 			panic(err)
 		}
