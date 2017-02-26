@@ -102,12 +102,12 @@ func (p *popup) repaint() {
 	x := w/2 - popupW/2
 	y := h/2 - popupH/2
 
-	fmtString := "%s %-" + strconv.Itoa(popupW) + "s %s"
+	fmtString := "%s%-" + strconv.Itoa(popupW) + "s%s"
 
 	borders := [][]string{
-		[]string{"", "╮"},
-		[]string{"│", "│"},
-		[]string{"╰", "╯"},
+		[]string{"┌─", "─┐"},
+		[]string{"│ ", " │"},
+		[]string{"└─", "─┘"},
 	}
 
 	for i := -1; i <= popupH; i += 1 {
@@ -116,7 +116,7 @@ func (p *popup) repaint() {
 
 		if i == -1 {
 			border = borders[0]
-			content = strings.Repeat("─", popupW-2)
+			content = strings.Repeat("─", popupW)
 		} else if i < popupH {
 			border = borders[1]
 			if i < len(p.content) {
@@ -126,7 +126,7 @@ func (p *popup) repaint() {
 			}
 		} else {
 			border = borders[2]
-			content = strings.Repeat("─", popupW-2)
+			content = strings.Repeat("─", popupW)
 		}
 
 		line := fmt.Sprintf(fmtString, border[0], content, border[1])
