@@ -33,6 +33,48 @@ type columnOptions struct {
 	width     int
 }
 
+type filter interface {
+	matches(row []string) bool
+}
+
+type rowFilter struct {
+	filter        string
+	caseSensitive bool
+}
+
+type columnFilter struct {
+	filter        string
+	caseSensitive bool
+	colIdx        int
+}
+
+func (f rowFilter) matches(row []string) bool {
+	for _, col := range row {
+		if f.caseSensitive && strings.Contains(col, f.filter) {
+			return true
+		} else if !f.caseSensitive {
+			lowerFilter := strings.ToLower(f.filter)
+			lowerCol := strings.ToLower(col)
+			if strings.Contains(lowerCol, lowerFilter) {
+				return true
+			}
+		}
+
+	}
+	return false
+}
+
+func (f columnFilter) matches(row []string) bool {
+	if f.caseSensitive {
+		return row[f.colIdx] == f.filter
+	}
+
+	lowerFilter := strings.ToLower(f.filter)
+	lowerCol := strings.ToLower(row[f.colIdx])
+
+	return strings.Contains(lowerCol, lowerFilter)
+}
+
 type popup struct {
 	content          []string
 	offsetX, offsetY int
@@ -42,6 +84,7 @@ type UI struct {
 	mode             inputMode
 	rowIdx, colIdx   int // Selection control
 	offsetX, offsetY int // Pan control
+	filters          []filter
 	filterString     string
 	filterMatches    []int
 	zebraStripe      bool
