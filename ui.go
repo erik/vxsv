@@ -42,6 +42,8 @@ DEFAULT MODE
 COLUMN SELECT MODE
 
   <arrow keys>    select column
+  Ctrl a          select first column
+  Ctrl e          select last column
   <               sort by column, ascending
   >               sort by column, descending
   w               toggle collapsing this column
@@ -55,7 +57,6 @@ FILTER MODE
   Ctrl w          clear filter
   [ENTER]         apply filter and return to default mode
 `
-
 
 type inputMode int
 
@@ -576,10 +577,13 @@ func (ui *UI) rowSorter(i, j int) bool {
 
 func (ui *UI) handleKeyColumnSelect(ev termbox.Event) {
 	switch {
+	case ev.Key == termbox.KeyCtrlA:
+		ui.colIdx = 0
+	case ev.Key == termbox.KeyCtrlE:
+		ui.colIdx = len(ui.columns) - 1
 	case ev.Key == termbox.KeyArrowRight:
 		next := ui.findNextColumn(ui.colIdx, 1)
 		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
-
 	case ev.Key == termbox.KeyArrowLeft:
 		next := ui.findNextColumn(ui.colIdx, -1)
 		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
