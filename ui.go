@@ -181,7 +181,7 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 func (p *popup) repaint() {
 	w, h := termbox.Size()
 
-	popupW := clamp(120, 80, w-5)
+	popupW := clamp(120, 40, w-5)
 	popupH := clamp(len(p.content)+2, 10, h-5)
 
 	x := w/2 - popupW/2
@@ -287,7 +287,7 @@ func (ui *UI) writeColumns(x, y int) {
 func (ui *UI) writeRow(x, y int, row []string) {
 	fg := termbox.ColorDefault
 
-	if ui.zebraStripe && y%2 == 0 {
+	if ui.zebraStripe && (ui.offsetY+y)%2 == 0 {
 		fg = termbox.ColorMagenta
 	}
 
@@ -648,11 +648,11 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 	case ev.Key == termbox.KeyCtrlA:
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
-		ui.offsetX = clamp(-endOfLine+vw, -endOfLine, 0)
+		ui.offsetX = -endOfLine + vw
 	case ev.Key == termbox.KeyArrowRight:
-		ui.offsetX = clamp(ui.offsetX-5, -endOfLine, 0)
+		ui.offsetX = clamp(ui.offsetX-5, -endOfLine+vw, 0)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.offsetX = clamp(ui.offsetX+5, -endOfLine, 0)
+		ui.offsetX = clamp(ui.offsetX+5, -endOfLine+vw, 0)
 	case ev.Key == termbox.KeyArrowUp:
 		ui.offsetY = clamp(ui.offsetY-1, 0, maxYOffset)
 	case ev.Key == termbox.KeyArrowDown:
