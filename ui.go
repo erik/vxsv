@@ -17,6 +17,46 @@ const ROW_INDICATOR = '»'
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
 const HILITE_BG = termbox.ColorWhite
 
+const HELP_TEXT = `Key Bindings
+
+vxsv is a modal viewer, meaning that actions are only valid in certain
+contexts.
+
+DEFAULT MODE
+
+  Ctrl l          refresh screen
+  Ctrl a          pan to beginning of line
+  Ctrl e          pan to end of line
+  <arrow keys>    scroll / pan control
+  Ctrl r, /       enter ** FILTER MODE **
+  [ENTER]         pop open dialog showing row in detail
+  [SPACE]         scroll down one screen
+  C               enter ** COLUMN SELECT MODE **
+  G               scroll to bottom
+  g               scroll to top
+  Z               toggle zebra stripes
+  X               toggle expanding all columns
+  ?               idk
+  Ctrl c, q       exit
+
+COLUMN SELECT MODE
+
+  <arrow keys>    select column
+  <               sort by column, ascending
+  >               sort by column, descending
+  w               toggle collapsing this column
+  x               toggle expanding this column
+  .               toggle pinning column
+  [ESC], Ctrl g   return to ** DEFAULT MODE **
+
+FILTER MODE
+
+  [ESC], Ctrl g   clear filter and return to ** DEFAULT MODE **
+  Ctrl w          clear filter
+  [ENTER]         apply filter and return to default mode
+`
+
+
 type inputMode int
 
 const (
@@ -457,7 +497,11 @@ func (ui *UI) panTo(col int) {
 func (ui *UI) handleKeyFilter(ev termbox.Event) {
 	// Ch == 0 implies this was a special key
 	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
-		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG || ev.Key == termbox.KeyEnter {
+		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
+			ui.mode = ModeDefault
+			ui.filterString = ""
+			ui.filterRows(false)
+		} else if ev.Key == termbox.KeyEnter {
 			ui.mode = ModeDefault
 		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
 			ev.Key == termbox.KeyBackspace2 {
@@ -661,6 +705,11 @@ func (ui *UI) handleKeyDefault(ev termbox.Event) {
 			ui.columnOpts[i].collapsed = false
 		}
 		globalExpanded = !globalExpanded
+	case ev.Ch == '?':
+		ui.mode = ModePopup
+		ui.popup = popup{
+			content: strings.Split(HELP_TEXT, "\n"),
+		}
 
 	case ui.mode == ModeDefault && ev.Ch == 'q':
 		panic("TODO: real exit")
