@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"fmt"
+	"github.com/montanaflynn/stats"
 	"github.com/nsf/termbox-go"
 )
 
@@ -252,7 +253,83 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		if ui.columnOpts[h.column].pinned {
 			ui.columnOpts[h.column].collapsed = false
 		}
+	case ev.Ch == 's':
+		var (
+			min, max, stdev float64
+			mean, median    float64
+			mode            []float64
+			sum, variance   float64
+			p90, p95, p99   float64
+			quartiles       stats.Quartiles
+			err             error
+			text            string
+		)
 
+		data := make(stats.Float64Data, 0, len(ui.rows)+1)
+		for _, row := range ui.rows {
+			trimmed := strings.TrimSpace(row[h.column])
+			if val, err := strconv.ParseFloat(trimmed, 64); err == nil {
+				data = append(data, val)
+			}
+		}
+
+		if len(data) == 0 {
+			data = []float64{0.0, 0.0, 0.0, 0.0}
+		}
+
+		// The joy of go
+		if min, err = data.Min(); err != nil {
+			goto error
+		} else if max, err = data.Max(); err != nil {
+			goto error
+		} else if mean, err = data.Mean(); err != nil {
+			goto error
+		} else if median, err = data.Median(); err != nil {
+			goto error
+		} else if mode, err = data.Mode(); err != nil {
+			goto error
+		} else if stdev, err = data.StandardDeviation(); err != nil {
+			goto error
+		} else if sum, err = data.Sum(); err != nil {
+			goto error
+		} else if p90, err = data.Percentile(90); err != nil {
+			goto error
+		} else if p95, err = data.Percentile(95); err != nil {
+			goto error
+		} else if p99, err = data.Percentile(99); err != nil {
+			goto error
+		} else if variance, err = data.Variance(); err != nil {
+			goto error
+		} else if quartiles, err = stats.Quartile(data); err != nil {
+			goto error
+		}
+
+		text = fmt.Sprintf(`
+  SUMMARY STATISTICS [ %s ]
+  ------------------
+  rows:         %d
+  numeric rows: %d
+
+  min %15.4f  mean   %15.4f
+  max %15.4f  median %15.4f
+  sum %15.4f  mode   %15.4f
+
+  var %15.4f  std    %15.4f
+
+  p90 %15.4f  q1     %15.4f
+  p95 %15.4f  q2     %15.4f
+  p99 %15.4f  q3     %15.4f`,
+			ui.columns[h.column], len(ui.rows), len(data),
+			min, mean, max, median, sum, mode[0], variance, stdev,
+			p90, quartiles.Q1, p95, quartiles.Q2, p99, quartiles.Q3)
+
+		ui.handler = NewPopup(ui, text)
+
+		break
+		// TODO: handle rror for real
+	error:
+		fmt.Printf("%v\n", err)
+		panic(err)
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
 		savedColumn = h.column
 		h.selectColumn(-1)
