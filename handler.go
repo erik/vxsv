@@ -21,7 +21,7 @@ type HandlerDefault struct {
 	ui *UI
 }
 
-func (h HandlerDefault) Repaint() {
+func (h *HandlerDefault) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
 
@@ -38,7 +38,7 @@ func (h HandlerDefault) Repaint() {
 	writeLine(0, height-1, termbox.ColorDefault, termbox.ColorDefault, line)
 }
 
-func (h HandlerDefault) HandleKey(ev termbox.Event) {
+func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	ui := h.ui
 	vw, vh := ui.viewSize()
 
@@ -61,7 +61,7 @@ func (h HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowDown:
 		ui.offsetY = clamp(ui.offsetY+1, 0, maxYOffset)
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
-		ui.handler = HandlerFilter{h}
+		ui.handler = &HandlerFilter{*h}
 		ui.offsetY = 0
 	case ev.Key == termbox.KeyEnter:
 		jsonObj := make(map[string]interface{})
@@ -93,9 +93,8 @@ func (h HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
 	case ev.Ch == 'C':
-		ui.handler = HandlerColumnSelect{h, 0}
+		ui.handler = NewColumnSelect(h.ui)
 		ui.offsetX = 0
-		ui.colIdx = 0
 	case ev.Ch == 'G':
 		ui.offsetY = maxYOffset
 	case ev.Ch == 'g':
@@ -118,7 +117,7 @@ type HandlerFilter struct {
 	HandlerDefault
 }
 
-func (h HandlerFilter) Repaint() {
+func (h *HandlerFilter) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
 
@@ -128,7 +127,7 @@ func (h HandlerFilter) Repaint() {
 
 }
 
-func (h HandlerFilter) HandleKey(ev termbox.Event) {
+func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 	ui := h.ui
 
 	// Ch == 0 implies this was a special key
@@ -151,7 +150,9 @@ func (h HandlerFilter) HandleKey(ev termbox.Event) {
 			ui.filterRows(false)
 		} else {
 			// Fallback to default handling for arrows etc
-			HandlerDefault{h.ui}.HandleKey(ev)
+			// FIXME: is this really the best way to do this in go?
+			def := &HandlerDefault{h.ui}
+			def.HandleKey(ev)
 		}
 		return
 	}
@@ -166,72 +167,100 @@ func (h HandlerFilter) HandleKey(ev termbox.Event) {
 	ui.filterRows(true)
 }
 
-func (ui *UI) rowSorter(i, j int) bool {
-	row1 := ui.rows[ui.filterMatches[i]]
-	row2 := ui.rows[ui.filterMatches[j]]
-
-	v1, err1 := strconv.ParseFloat(row1[ui.colIdx], 32)
-	v2, err2 := strconv.ParseFloat(row2[ui.colIdx], 32)
-
-	if err1 == nil && err2 == nil {
-		return v1 < v2
-	}
-
-	return row1[ui.colIdx] < row2[ui.colIdx]
-}
-
 type HandlerColumnSelect struct {
 	HandlerDefault
 	column int
 }
 
-func (h HandlerColumnSelect) Repaint() {
+func NewColumnSelect(ui *UI) *HandlerColumnSelect {
+	h := HandlerColumnSelect{
+		HandlerDefault: HandlerDefault{ui},
+		column:         0,
+	}
+
+	h.selectColumn(0)
+	return &h
+}
+
+// TODO: also adjust x offset
+func (h *HandlerColumnSelect) selectColumn(idx int) {
+	h.ui.columnOpts[h.column].highlight = false
+	h.column = idx
+
+	if h.column >= 0 {
+		h.ui.columnOpts[h.column].highlight = true
+	}
+}
+
+func (h *HandlerColumnSelect) rowSorter(i, j int) bool {
+	ui := h.ui
+
+	row1 := ui.rows[ui.filterMatches[i]]
+	row2 := ui.rows[ui.filterMatches[j]]
+
+	v1, err1 := strconv.ParseFloat(row1[h.column], 32)
+	v2, err2 := strconv.ParseFloat(row2[h.column], 32)
+
+	if err1 == nil && err2 == nil {
+		return v1 < v2
+	}
+
+	return row1[h.column] < row2[h.column]
+}
+
+func (h *HandlerColumnSelect) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
-	line := "COLUMN SELECT (^g quit) [" + ui.columns[ui.colIdx] + "]"
+
+	line := fmt.Sprintf("COLUMN SELECT (^g quit) [%s] %d", ui.columns[h.column], h.column)
 	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 }
 
-func (h HandlerColumnSelect) HandleKey(ev termbox.Event) {
+func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	ui := h.ui
+	savedColumn := -1
 
 	switch {
 	case ev.Key == termbox.KeyCtrlA:
-		ui.colIdx = ui.findFirstColumn()
+		h.selectColumn(ui.findFirstColumn())
 	case ev.Key == termbox.KeyCtrlE:
-		ui.colIdx = len(ui.columns) - 1
+		h.selectColumn(len(ui.columns) - 1)
 	case ev.Key == termbox.KeyArrowRight:
-		next := ui.findNextColumn(ui.colIdx, 1)
-		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
+		next := ui.findNextColumn(h.column, 1)
+		h.selectColumn(clamp(next, 0, len(ui.columns)-1))
 	case ev.Key == termbox.KeyArrowLeft:
-		next := ui.findNextColumn(ui.colIdx, -1)
-		ui.colIdx = clamp(next, 0, len(ui.columns)-1)
+		next := ui.findNextColumn(h.column, -1)
+		h.selectColumn(clamp(next, 0, len(ui.columns)-1))
 	case ev.Ch == '<':
 		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
-			return ui.rowSorter(i, j)
+			return h.rowSorter(i, j)
 		})
 	case ev.Ch == '>':
 		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
-			return ui.rowSorter(j, i)
+			return h.rowSorter(j, i)
 		})
 	case ev.Ch == 'w':
-		ui.columnOpts[ui.colIdx].collapsed = !ui.columnOpts[ui.colIdx].collapsed
+		ui.columnOpts[h.column].collapsed = !ui.columnOpts[h.column].collapsed
 	case ev.Ch == 'x':
-		ui.columnOpts[ui.colIdx].expanded = !ui.columnOpts[ui.colIdx].expanded
-		if ui.columnOpts[ui.colIdx].expanded {
-			ui.columnOpts[ui.colIdx].collapsed = false
+		ui.columnOpts[h.column].expanded = !ui.columnOpts[h.column].expanded
+		if ui.columnOpts[h.column].expanded {
+			ui.columnOpts[h.column].collapsed = false
 		}
 	case ev.Ch == '.':
-		ui.columnOpts[ui.colIdx].pinned = !ui.columnOpts[ui.colIdx].pinned
+		ui.columnOpts[h.column].pinned = !ui.columnOpts[h.column].pinned
 
-		if ui.columnOpts[ui.colIdx].pinned {
-			ui.columnOpts[ui.colIdx].collapsed = false
+		if ui.columnOpts[h.column].pinned {
+			ui.columnOpts[h.column].collapsed = false
 		}
 
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
-		ui.handler = HandlerDefault{h.ui}
+		savedColumn = h.column
+		h.selectColumn(-1)
+		ui.switchToDefault()
 	default:
-		HandlerDefault{h.ui}.HandleKey(ev)
+		// FIXME: ditto, is this the best way to do this?
+		def := &HandlerDefault{h.ui}
+		def.HandleKey(ev)
 	}
 
 	// find if we've gone off screen and readjust
@@ -240,16 +269,22 @@ func (h HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	for i, _ := range ui.columns {
 		colOpts := ui.columnOpts[i]
 
-		if i == ui.colIdx {
+		if i == h.column || i == savedColumn {
 			break
 		}
-		//cursorPosition += 3
-		if !colOpts.collapsed {
+
+		if colOpts.collapsed {
+			cursorPosition += 1
+		} else if !colOpts.expanded {
+			cursorPosition += clamp(colOpts.width, 0, MAX_CELL_WIDTH)
+		} else {
 			cursorPosition += colOpts.width
 		}
+
+		cursorPosition += len(CELL_SEPARATOR)
 	}
 
-	width, _ := termbox.Size()
+	width, _ := ui.viewSize()
 	if cursorPosition > width-ui.offsetX || cursorPosition < -ui.offsetX {
 		ui.offsetX = -cursorPosition
 	}
@@ -262,14 +297,14 @@ type HandlerPopup struct {
 	offsetX, offsetY int
 }
 
-func NewPopup(ui *UI, content string) HandlerPopup {
-	return HandlerPopup{
+func NewPopup(ui *UI, content string) *HandlerPopup {
+	return &HandlerPopup{
 		HandlerDefault: HandlerDefault{ui},
 		content:        strings.Split(content, "\n"),
 	}
 }
 
-func (h HandlerPopup) Repaint() {
+func (h *HandlerPopup) Repaint() {
 	width, height := termbox.Size()
 
 	popupW := clamp(120, 40, width-5)
@@ -314,13 +349,9 @@ func (h HandlerPopup) Repaint() {
 
 }
 
-func (h HandlerPopup) HandleKey(ev termbox.Event) {
+func (h *HandlerPopup) HandleKey(ev termbox.Event) {
 
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG || ev.Ch == 'q' {
-		h.ui.SetHandler(HandlerDefault{h.ui})
+		h.ui.handler = &HandlerDefault{h.ui}
 	}
-}
-
-type HandlerRowSelect struct {
-	HandlerDefault
 }

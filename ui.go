@@ -60,6 +60,7 @@ type columnOptions struct {
 	expanded  bool
 	collapsed bool
 	pinned    bool
+	highlight bool
 	width     int
 }
 
@@ -89,7 +90,6 @@ func (f rowFilter) matches(row []string) bool {
 				return true
 			}
 		}
-
 	}
 	return false
 }
@@ -107,7 +107,7 @@ func (f columnFilter) matches(row []string) bool {
 
 type UI struct {
 	handler          ModeHandler
-	rowIdx, colIdx   int // Selection control
+	rowIdx           int // Selection control
 	offsetX, offsetY int // Pan control
 	filters          []filter
 	filterString     string
@@ -166,7 +166,7 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 	colOpts := ui.columnOpts[index]
 	lastCol := index == len(ui.columnOpts)-1
 
-	if index == ui.colIdx {
+	if colOpts.highlight {
 		fg = HILITE_FG
 		bg = HILITE_BG
 	}
@@ -255,6 +255,7 @@ func NewUi(data TabularData) *UI {
 			expanded:  col.Width < MAX_CELL_WIDTH,
 			collapsed: false,
 			pinned:    false,
+			highlight: false,
 			width:     col.Width,
 		}
 	}
@@ -266,7 +267,6 @@ func NewUi(data TabularData) *UI {
 	ui := &UI{
 		offsetX:       0,
 		offsetY:       0,
-		colIdx:        -1,
 		columnOpts:    colOpts,
 		rows:          data.Rows,
 		columns:       columns,
@@ -447,9 +447,5 @@ func (ui *UI) findNextColumn(current, direction int) int {
 }
 
 func (ui *UI) switchToDefault() {
-	ui.handler = HandlerDefault{ui}
-}
-
-func (ui *UI) SetHandler(h ModeHandler) {
-	ui.handler = h
+	ui.handler = &HandlerDefault{ui}
 }
