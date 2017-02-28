@@ -217,9 +217,12 @@ func (h *HandlerColumnSelect) Repaint() {
 	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 }
 
+// FIXME: When transitioning out of ColumnSelect mode, we leave a
+// FIXME: column highlighted.
 func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	ui := h.ui
 	savedColumn := -1
+	colOpt := &ui.columnOpts[h.column]
 
 	switch {
 	case ev.Key == termbox.KeyCtrlA:
@@ -241,17 +244,17 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			return h.rowSorter(j, i)
 		})
 	case ev.Ch == 'w':
-		ui.columnOpts[h.column].collapsed = !ui.columnOpts[h.column].collapsed
+		colOpt.collapsed = !colOpt.collapsed
 	case ev.Ch == 'x':
-		ui.columnOpts[h.column].expanded = !ui.columnOpts[h.column].expanded
-		if ui.columnOpts[h.column].expanded {
-			ui.columnOpts[h.column].collapsed = false
+		colOpt.expanded = !colOpt.expanded
+		if colOpt.expanded {
+			colOpt.collapsed = false
 		}
 	case ev.Ch == '.':
-		ui.columnOpts[h.column].pinned = !ui.columnOpts[h.column].pinned
+		colOpt.pinned = !colOpt.pinned
 
-		if ui.columnOpts[h.column].pinned {
-			ui.columnOpts[h.column].collapsed = false
+		if colOpt.pinned {
+			colOpt.collapsed = false
 		}
 	case ev.Ch == 's':
 		var (
