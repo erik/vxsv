@@ -197,7 +197,7 @@ func (h HandlerColumnSelect) HandleKey(ev termbox.Event) {
 
 	switch {
 	case ev.Key == termbox.KeyCtrlA:
-		ui.colIdx = 0
+		ui.colIdx = ui.findFirstColumn()
 	case ev.Key == termbox.KeyCtrlE:
 		ui.colIdx = len(ui.columns) - 1
 	case ev.Key == termbox.KeyArrowRight:

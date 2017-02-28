@@ -405,6 +405,18 @@ func (ui *UI) panTo(col int) {
 
 var globalExpanded = false
 
+// Find the first visually displayed column
+func (ui *UI) findFirstColumn() int {
+	for i, col := range ui.columnOpts {
+		if col.pinned {
+			return i
+		}
+	}
+
+	// If there are no pinned columns, just return first
+	return 0
+}
+
 func (ui *UI) findNextColumn(current, direction int) int {
 	isPinned := ui.columnOpts[current].pinned
 
