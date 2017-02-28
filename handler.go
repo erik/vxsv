@@ -330,8 +330,8 @@ func (h *HandlerPopup) Repaint() {
 			content = strings.Repeat("─", popupW)
 		} else if i < popupH {
 			border = borders[1]
-			if i < len(h.content) {
-				content = h.content[i]
+			if i+h.offsetY < len(h.content) {
+				content = h.content[i+h.offsetY]
 			} else {
 				content = " "
 			}
@@ -350,8 +350,18 @@ func (h *HandlerPopup) Repaint() {
 }
 
 func (h *HandlerPopup) HandleKey(ev termbox.Event) {
-
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG || ev.Ch == 'q' {
 		h.ui.handler = &HandlerDefault{h.ui}
+	}
+
+	switch ev.Key {
+	case termbox.KeyArrowLeft:
+		h.offsetX = clamp(h.offsetX-5, 0, 9999)
+	case termbox.KeyArrowRight:
+		h.offsetX = clamp(h.offsetX+5, 0, 9999)
+	case termbox.KeyArrowUp:
+		h.offsetY = clamp(h.offsetY-1, 0, len(h.content)-5)
+	case termbox.KeyArrowDown:
+		h.offsetY = clamp(h.offsetY+1, 0, len(h.content)-5)
 	}
 }

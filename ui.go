@@ -400,7 +400,6 @@ func (ui *UI) scroll(rows int) {
 
 // TODO: Write me, stop manually panning
 func (ui *UI) panTo(col int) {
-
 }
 
 var globalExpanded = false
