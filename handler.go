@@ -307,7 +307,7 @@ func NewPopup(ui *UI, content string) *HandlerPopup {
 func (h *HandlerPopup) Repaint() {
 	width, height := termbox.Size()
 
-	popupW := clamp(120, 40, width-5)
+	popupW := clamp(120, 50, width-15)
 	popupH := clamp(len(h.content)+2, 10, height-5)
 
 	x := width/2 - popupW/2
@@ -332,6 +332,9 @@ func (h *HandlerPopup) Repaint() {
 			border = borders[1]
 			if i+h.offsetY < len(h.content) {
 				content = h.content[i+h.offsetY]
+				if len(content) >= popupW {
+					content = content[0:popupW]
+				}
 			} else {
 				content = " "
 			}
