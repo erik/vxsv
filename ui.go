@@ -106,7 +106,7 @@ func (f columnFilter) matches(row []string) bool {
 }
 
 type UI struct {
-	handler          ModeHandler
+	handlers         []ModeHandler
 	rowIdx           int // Selection control
 	offsetX, offsetY int // Pan control
 	filters          []filter
@@ -304,7 +304,7 @@ eventloop:
 				break eventloop
 			}
 
-			ui.handler.HandleKey(ev)
+			ui.activeHandler().HandleKey(ev)
 		}
 
 		ui.repaint()
@@ -362,7 +362,7 @@ func (ui *UI) repaint() {
 		}
 	}
 
-	ui.handler.Repaint()
+	ui.activeHandler().Repaint()
 	termbox.Flush()
 }
 
@@ -445,6 +445,25 @@ func (ui *UI) findNextColumn(current, direction int) int {
 	return current
 }
 
+func (ui *UI) activeHandler() ModeHandler {
+	if len(ui.handlers) == 0 {
+		ui.switchToDefault()
+	}
+	return ui.handlers[len(ui.handlers)-1]
+}
+
 func (ui *UI) switchToDefault() {
-	ui.handler = &HandlerDefault{ui}
+	ui.handlers = []ModeHandler{&HandlerDefault{ui}}
+}
+
+func (ui *UI) pushHandler(h ModeHandler) {
+	ui.handlers = append(ui.handlers, h)
+}
+
+func (ui *UI) popHandler() {
+	if len(ui.handlers) > 1 {
+		ui.handlers = ui.handlers[:len(ui.handlers)-1]
+	} else {
+		ui.switchToDefault()
+	}
 }

@@ -62,7 +62,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowDown:
 		ui.offsetY = clamp(ui.offsetY+1, 0, maxYOffset)
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
-		ui.handler = &HandlerFilter{*h}
+		ui.pushHandler(&HandlerFilter{*h})
 		ui.offsetY = 0
 	case ev.Key == termbox.KeyEnter:
 		jsonObj := make(map[string]interface{})
@@ -89,12 +89,12 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 			panic(err)
 		}
 
-		ui.handler = NewPopup(h.ui, string(jsonStr))
+		ui.pushHandler(NewPopup(h.ui, string(jsonStr)))
 
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
 	case ev.Ch == 'C':
-		ui.handler = NewColumnSelect(h.ui)
+		ui.pushHandler(NewColumnSelect(h.ui))
 		ui.offsetX = 0
 	case ev.Ch == 'G':
 		ui.offsetY = maxYOffset
@@ -110,7 +110,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		}
 		globalExpanded = !globalExpanded
 	case ev.Ch == '?':
-		ui.handler = NewPopup(h.ui, HELP_TEXT)
+		ui.pushHandler(NewPopup(h.ui, HELP_TEXT))
 	}
 }
 
@@ -134,12 +134,12 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 	// Ch == 0 implies this was a special key
 	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
 		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
-			ui.switchToDefault()
+			ui.popHandler()
 
 			ui.filterString = ""
 			ui.filterRows(false)
 		} else if ev.Key == termbox.KeyEnter {
-			ui.switchToDefault()
+			ui.popHandler()
 		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
 			ev.Key == termbox.KeyBackspace2 {
 			if sz := len(ui.filterString); sz > 0 {
@@ -326,7 +326,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			min, mean, max, median, sum, mode[0], variance, stdev,
 			p90, quartiles.Q1, p95, quartiles.Q2, p99, quartiles.Q3)
 
-		ui.handler = NewPopup(ui, text)
+		ui.pushHandler(NewPopup(ui, text))
 
 		break
 		// TODO: handle rror for real
@@ -336,7 +336,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
 		savedColumn = h.column
 		h.selectColumn(-1)
-		ui.switchToDefault()
+		ui.popHandler()
 	default:
 		// FIXME: ditto, is this the best way to do this?
 		def := &HandlerDefault{h.ui}
@@ -434,7 +434,7 @@ func (h *HandlerPopup) Repaint() {
 
 func (h *HandlerPopup) HandleKey(ev termbox.Event) {
 	if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG || ev.Ch == 'q' {
-		h.ui.handler = &HandlerDefault{h.ui}
+		h.ui.popHandler()
 	}
 
 	switch ev.Key {
