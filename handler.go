@@ -319,9 +319,9 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 
   var %15.4f  std    %15.4f
 
-  p90 %15.4f  q1     %15.4f
-  p95 %15.4f  q2     %15.4f
-  p99 %15.4f  q3     %15.4f`,
+  p90 %15.4f  p25    %15.4f
+  p95 %15.4f  p50    %15.4f
+  p99 %15.4f  p75    %15.4f`,
 			ui.columns[h.column], len(ui.rows), len(data),
 			min, mean, max, median, sum, mode[0], variance, stdev,
 			p90, quartiles.Q1, p95, quartiles.Q2, p99, quartiles.Q3)
