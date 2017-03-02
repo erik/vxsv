@@ -268,8 +268,9 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			text            string
 		)
 
-		data := make(stats.Float64Data, 0, len(ui.rows)+1)
-		for _, row := range ui.rows {
+		data := make(stats.Float64Data, 0, len(ui.filterMatches)+1)
+		for _, rowIdx := range ui.filterMatches {
+			row := ui.rows[rowIdx]
 			trimmed := strings.TrimSpace(row[h.column])
 			if val, err := strconv.ParseFloat(trimmed, 64); err == nil {
 				data = append(data, val)
@@ -310,19 +311,19 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		text = fmt.Sprintf(`
   SUMMARY STATISTICS [ %s ]
   ------------------
-  rows:         %d
+  rows visible: %d (of %d)
   numeric rows: %d
 
-  min %15.4f  mean   %15.4f
-  max %15.4f  median %15.4f
-  sum %15.4f  mode   %15.4f
+  min: %15.4f      mean:   %15.4f
+  max: %15.4f      median: %15.4f
+  sum: %15.4f      mode:   %15.4f
 
-  var %15.4f  std    %15.4f
+  var: %15.4f      std:    %15.4f
 
-  p90 %15.4f  p25    %15.4f
-  p95 %15.4f  p50    %15.4f
-  p99 %15.4f  p75    %15.4f`,
-			ui.columns[h.column], len(ui.rows), len(data),
+  p90: %15.4f      p25:    %15.4f
+  p95: %15.4f      p50:    %15.4f
+  p99: %15.4f      p75:    %15.4f`,
+			ui.columns[h.column], len(ui.filterMatches), len(ui.rows), len(data),
 			min, mean, max, median, sum, mode[0], variance, stdev,
 			p90, quartiles.Q1, p95, quartiles.Q2, p99, quartiles.Q3)
 
