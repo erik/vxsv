@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/nsf/termbox-go"
 )
@@ -58,13 +58,28 @@ FILTER MODE
   [ENTER]         apply filter and return to default mode
 `
 
+type ColumnDisplay int
+
+const (
+	ColumnDefault = iota
+	ColumnCollapsed
+	ColumnExpanded
+	ColumnAligned
+)
+
 type columnOptions struct {
-	expanded  bool
-	collapsed bool
+	display   ColumnDisplay
 	pinned    bool
 	highlight bool
-	aligned   bool
 	width     int
+}
+
+func (c *columnOptions) toggleDisplay(mode ColumnDisplay) {
+	if c.display == mode {
+		c.display = ColumnDefault
+	} else {
+		c.display = mode
+	}
 }
 
 type filter interface {
@@ -165,40 +180,40 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 
 func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.Attribute) int {
 	colOpts := ui.columnOpts[index]
-	lastCol := index == len(ui.columnOpts)-1
 
 	if colOpts.highlight {
 		fg = HILITE_FG
 		bg = HILITE_BG
 	}
 
-	if colOpts.collapsed {
-		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
-	} else if colOpts.aligned {
-		var padded string
+	formatted := cell
+
+	switch colOpts.display {
+	case ColumnDefault:
+		width := clamp(colOpts.width, 0, MAX_CELL_WIDTH)
+
+		if len(formatted) > width {
+			formatted = fmt.Sprintf("%-*s…", width-1, formatted[:width-1])
+		} else {
+			formatted = fmt.Sprintf("%-*s", width, formatted)
+		}
+	case ColumnExpanded:
+		if len(formatted) < colOpts.width {
+			formatted = fmt.Sprintf("%-*s", colOpts.width, formatted)
+		}
+	case ColumnCollapsed:
+		formatted = "…"
+	case ColumnAligned:
+		width := clamp(colOpts.width, 16, MAX_CELL_WIDTH)
 
 		if val, err := strconv.ParseFloat(cell, 64); err == nil {
-			padded = fmt.Sprintf("%*.4f", MAX_CELL_WIDTH, val)
-		} else if len(cell) >= MAX_CELL_WIDTH {
-			padded = fmt.Sprintf("%s…", cell[:MAX_CELL_WIDTH-1])
+			formatted = fmt.Sprintf("%*.4f", width, val)
 		} else {
-			padded = fmt.Sprintf("%-*s", MAX_CELL_WIDTH, cell)
+			formatted = fmt.Sprintf("%*s", width, formatted)
 		}
-
-		x = writeStringBounded(x, y, pinBound, fg, bg, padded)
-	} else if !colOpts.expanded && len(cell) < MAX_CELL_WIDTH {
-		padded := fmt.Sprintf("%-*s", MAX_CELL_WIDTH, cell)
-		x = writeStringBounded(x, y, pinBound, fg, bg, padded)
-	} else if !colOpts.expanded && !lastCol {
-		width := clamp(len(cell)-1, 0, MAX_CELL_WIDTH-1)
-		str := fmt.Sprintf("%-*s…", width, cell[:width])
-
-		x = writeStringBounded(x, y, pinBound, fg, bg, str)
-	} else {
-		str := fmt.Sprintf("%-*s", colOpts.width, cell)
-		writeStringBounded(x, y, pinBound, fg, bg, str)
-		x += colOpts.width
 	}
+
+	x = writeStringBounded(x, y, pinBound, fg, bg, formatted)
 
 	// Draw separator if this isn't the last element
 	if index != len(ui.columns)-1 {
@@ -266,11 +281,15 @@ func NewUi(data *TabularData) *UI {
 	for i, col := range data.Columns {
 		columns[i] = col.Name
 		colOpts[i] = columnOptions{
-			expanded:  col.Width < MAX_CELL_WIDTH,
-			collapsed: false,
+			display:   ColumnDefault,
 			pinned:    false,
 			highlight: false,
 			width:     col.Width,
+		}
+
+		// Last column should open expanded
+		if i == len(data.Columns)-1 {
+			colOpts[i].display = ColumnExpanded
 		}
 	}
 
@@ -392,11 +411,12 @@ func (ui *UI) endOfLine() int {
 		colOpts := ui.columnOpts[i]
 
 		if !colOpts.pinned {
-			if colOpts.collapsed {
+			switch colOpts.display {
+			case ColumnCollapsed:
 				x += 1
-			} else if colOpts.expanded {
+			case ColumnExpanded:
 				x += colOpts.width
-			} else {
+			case ColumnDefault:
 				x += clamp(colOpts.width, 1, MAX_CELL_WIDTH)
 			}
 

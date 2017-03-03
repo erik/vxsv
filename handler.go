@@ -105,9 +105,11 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		ui.zebraStripe = !ui.zebraStripe
 	case ev.Ch == 'X':
 		for i, _ := range ui.columnOpts {
-			ui.columnOpts[i].expanded = !globalExpanded
-			// FIXME: Possibly not the best behavior
-			ui.columnOpts[i].collapsed = false
+			if globalExpanded {
+				ui.columnOpts[i].display = ColumnExpanded
+			} else {
+				ui.columnOpts[i].display = ColumnDefault
+			}
 		}
 		globalExpanded = !globalExpanded
 	case ev.Ch == '?':
@@ -245,19 +247,16 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			return h.rowSorter(j, i)
 		})
 	case ev.Ch == 'w':
-		colOpt.collapsed = !colOpt.collapsed
+		colOpt.toggleDisplay(ColumnCollapsed)
 	case ev.Ch == 'x':
-		colOpt.expanded = !colOpt.expanded
-		if colOpt.expanded {
-			colOpt.collapsed = false
-		}
+		colOpt.toggleDisplay(ColumnExpanded)
 	case ev.Ch == 'a':
-		colOpt.aligned = !colOpt.aligned
+		colOpt.toggleDisplay(ColumnAligned)
 	case ev.Ch == '.':
 		colOpt.pinned = !colOpt.pinned
 
 		if colOpt.pinned {
-			colOpt.collapsed = false
+			colOpt.display = ColumnDefault
 		}
 	case ev.Ch == 's':
 		var (
@@ -363,12 +362,13 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			break
 		}
 
-		if colOpts.collapsed {
+		switch colOpts.display {
+		case ColumnCollapsed:
 			cursorPosition += 1
-		} else if !colOpts.expanded {
-			cursorPosition += clamp(colOpts.width, 0, MAX_CELL_WIDTH)
-		} else {
+		case ColumnExpanded:
 			cursorPosition += colOpts.width
+		case ColumnDefault:
+			cursorPosition += clamp(colOpts.width, 0, MAX_CELL_WIDTH)
 		}
 
 		cursorPosition += len(CELL_SEPARATOR)
