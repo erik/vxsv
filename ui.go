@@ -15,7 +15,7 @@ const ROW_INDICATOR = '»'
 const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
 const HILITE_BG = termbox.ColorWhite
 
-const HELP_TEXT = `Key Bindings
+const HELP_TEXT = `Key Bindings:
 
 vxsv is a modal viewer, meaning that actions are only valid in certain
 contexts.
@@ -34,7 +34,7 @@ DEFAULT MODE
   g               scroll to top
   Z               toggle zebra stripes
   X               toggle expanding all columns
-  ?               idk
+  ?               show this help dialog
   Ctrl c, q       exit
 
 COLUMN SELECT MODE
@@ -47,6 +47,7 @@ COLUMN SELECT MODE
   w               toggle collapsing this column
   x               toggle expanding this column
   .               toggle pinning column
+  s               show summary statistics for this column
   [ESC], Ctrl g   return to ** DEFAULT MODE **
 
 FILTER MODE

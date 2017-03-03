@@ -24,6 +24,7 @@ func main() {
 
 Usage:
   vxsv [-tpxsd DELIMITER] ([-] | [<PATH>])
+  vxsv -h | --help
 
 Arguments:
   PATH  file to load [default: -]
