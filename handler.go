@@ -251,6 +251,8 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		if colOpt.expanded {
 			colOpt.collapsed = false
 		}
+	case ev.Ch == 'a':
+		colOpt.aligned = !colOpt.aligned
 	case ev.Ch == '.':
 		colOpt.pinned = !colOpt.pinned
 

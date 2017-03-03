@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"strconv"
 
 	"github.com/nsf/termbox-go"
 )
@@ -47,6 +48,7 @@ COLUMN SELECT MODE
   x               toggle expanding this column
   .               toggle pinning column
   s               show summary statistics for this column
+  a               line up decimal points for floats in this column
   [ESC], Ctrl g   return to ** DEFAULT MODE **
 
 FILTER MODE
@@ -61,6 +63,7 @@ type columnOptions struct {
 	collapsed bool
 	pinned    bool
 	highlight bool
+	aligned   bool
 	width     int
 }
 
@@ -171,13 +174,26 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 
 	if colOpts.collapsed {
 		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
+	} else if colOpts.aligned {
+		var padded string
+
+		if val, err := strconv.ParseFloat(cell, 64); err == nil {
+			padded = fmt.Sprintf("%*.4f", MAX_CELL_WIDTH, val)
+		} else if len(cell) >= MAX_CELL_WIDTH {
+			padded = fmt.Sprintf("%s…", cell[:MAX_CELL_WIDTH-1])
+		} else {
+			padded = fmt.Sprintf("%-*s", MAX_CELL_WIDTH, cell)
+		}
+
+		x = writeStringBounded(x, y, pinBound, fg, bg, padded)
 	} else if !colOpts.expanded && len(cell) < MAX_CELL_WIDTH {
 		padded := fmt.Sprintf("%-*s", MAX_CELL_WIDTH, cell)
 		x = writeStringBounded(x, y, pinBound, fg, bg, padded)
 	} else if !colOpts.expanded && !lastCol {
 		width := clamp(len(cell)-1, 0, MAX_CELL_WIDTH-1)
-		x = writeStringBounded(x, y, pinBound, fg, bg, cell[:width])
-		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
+		str := fmt.Sprintf("%-*s…", width, cell[:width])
+
+		x = writeStringBounded(x, y, pinBound, fg, bg, str)
 	} else {
 		str := fmt.Sprintf("%-*s", colOpts.width, cell)
 		writeStringBounded(x, y, pinBound, fg, bg, str)

@@ -20,8 +20,9 @@ func ReadCSVFile(reader io.Reader, delimiter rune) (*TabularData, error) {
 	} else {
 		columns := make([]Column, len(headers))
 		for i, col := range headers {
-			columns[i] = Column{Name: col, Width: len(col)}
-			data.Width += len(col)
+			width := clamp(len(col), 1, len(col))
+			columns[i] = Column{Name: col, Width: width}
+			data.Width += width
 		}
 		data.Columns = columns
 	}
