@@ -11,6 +11,7 @@ import (
 
 	"github.com/montanaflynn/stats"
 	"github.com/nsf/termbox-go"
+	"math"
 )
 
 type ModeHandler interface {
@@ -258,14 +259,14 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		}
 	case ev.Ch == 's':
 		var (
-			min, max, stdev float64
-			mean, median    float64
-			mode            []float64
-			sum, variance   float64
-			p90, p95, p99   float64
-			quartiles       stats.Quartiles
-			err             error
-			text            string
+			min, max, stdev    float64
+			mean, median, mode float64
+			modes              []float64
+			sum, variance      float64
+			p90, p95, p99      float64
+			quartiles          stats.Quartiles
+			err                error
+			text               string
 		)
 
 		data := make(stats.Float64Data, 0, len(ui.filterMatches)+1)
@@ -290,7 +291,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			goto error
 		} else if median, err = data.Median(); err != nil {
 			goto error
-		} else if mode, err = data.Mode(); err != nil {
+		} else if modes, err = data.Mode(); err != nil {
 			goto error
 		} else if stdev, err = data.StandardDeviation(); err != nil {
 			goto error
@@ -306,6 +307,12 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			goto error
 		} else if quartiles, err = stats.Quartile(data); err != nil {
 			goto error
+		}
+
+		if len(modes) > 1 {
+			mode = modes[0]
+		} else {
+			mode = math.NaN()
 		}
 
 		text = fmt.Sprintf(`
@@ -324,7 +331,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
   p95: %15.4f      p50:    %15.4f
   p99: %15.4f      p75:    %15.4f`,
 			ui.columns[h.column], len(ui.filterMatches), len(ui.rows), len(data),
-			min, mean, max, median, sum, mode[0], variance, stdev,
+			min, mean, max, median, sum, mode, variance, stdev,
 			p90, quartiles.Q1, p95, quartiles.Q2, p99, quartiles.Q3)
 
 		ui.pushHandler(NewPopup(ui, text))
