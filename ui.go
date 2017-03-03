@@ -412,6 +412,8 @@ func (ui *UI) endOfLine() int {
 
 		if !colOpts.pinned {
 			switch colOpts.display {
+			case ColumnAligned:
+				x += clamp(colOpts.width, 16, colOpts.width)
 			case ColumnCollapsed:
 				x += 1
 			case ColumnExpanded:
