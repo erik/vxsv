@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -39,7 +40,8 @@ Options:
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 
-	var data TabularData
+	var data *TabularData
+	var err error
 
 	// default to stdin if we don't have an explicit file passed in
 	reader := io.Reader(os.Stdin)
@@ -55,7 +57,10 @@ Options:
 	}
 
 	if args["--psql"] == true {
-		data = ReadPsqlTable(reader)
+		if data, err = ReadPsqlTable(reader); err != nil {
+			fmt.Printf("Failed to read PSQL data: %v", err)
+			os.Exit(1)
+		}
 	} else {
 		delimiter := ','
 		if args["-t"] == true {
@@ -68,12 +73,16 @@ Options:
 			}
 		}
 
-		data = ReadCSVFile(reader, delimiter)
+		if data, err = ReadCSVFile(reader, delimiter); err != nil {
+			fmt.Printf("Failed to read CSV file (do you have the right delimiter?): %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	ui := NewUi(data)
 	if err := ui.Init(); err != nil {
-		panic(err)
+		fmt.Printf("Failed to initialize terminal UI: %v\n", err)
+		os.Exit(1)
 	}
 
 	ui.Loop()

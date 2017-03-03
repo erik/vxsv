@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func ReadPsqlTable(reader io.Reader) TabularData {
+func ReadPsqlTable(reader io.Reader) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Scan()
 
@@ -28,13 +28,13 @@ func ReadPsqlTable(reader io.Reader) TabularData {
 	}
 
 	if err := scanner.Err(); err != nil {
-		// TODO: scream and shout...
+		return nil, err
 	}
 
-	return TabularData{
+	return &TabularData{
 		Columns: columns,
 		Rows:    rows,
-	}
+	}, nil
 }
 
 func parseColumns(columnString string) []Column {

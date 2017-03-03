@@ -2,22 +2,21 @@ package main
 
 import (
 	"encoding/csv"
-	"fmt"
+	"errors"
 	"io"
 )
 
-func ReadCSVFile(reader io.Reader, delimiter rune) TabularData {
+func ReadCSVFile(reader io.Reader, delimiter rune) (*TabularData, error) {
 	csv := csv.NewReader(reader)
 
-	data := TabularData{
+	data := &TabularData{
 		Width: 0,
 		Rows:  make([][]string, 0, 100),
 	}
 
 	csv.Comma = delimiter
 	if headers, err := csv.Read(); err != nil {
-		// TODO: error handling
-		panic(err)
+		return nil, err
 	} else {
 		columns := make([]Column, len(headers))
 		for i, col := range headers {
@@ -33,13 +32,11 @@ func ReadCSVFile(reader io.Reader, delimiter rune) TabularData {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			fmt.Println("Error:", err)
-			panic(err)
+			return nil, err
 		}
 
 		if len(record) != len(data.Columns) {
-			fmt.Println("INVALID ROW")
-			panic("ASDF")
+			return nil, errors.New("Row has incorrect number of columns")
 		}
 
 		data.Rows = append(data.Rows, record)
@@ -51,5 +48,5 @@ func ReadCSVFile(reader io.Reader, delimiter rune) TabularData {
 		}
 	}
 
-	return data
+	return data, nil
 }

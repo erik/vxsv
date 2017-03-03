@@ -4,11 +4,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 
-	"fmt"
 	"github.com/montanaflynn/stats"
 	"github.com/nsf/termbox-go"
 )

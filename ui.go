@@ -245,7 +245,7 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	}
 }
 
-func NewUi(data TabularData) *UI {
+func NewUi(data *TabularData) *UI {
 	colOpts := make([]columnOptions, len(data.Columns))
 	columns := make([]string, len(data.Columns))
 	filterMatches := make([]int, len(data.Rows))
