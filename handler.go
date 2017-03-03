@@ -309,7 +309,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			goto error
 		}
 
-		if len(modes) > 1 {
+		if len(modes) > 0 {
 			mode = modes[0]
 		} else {
 			mode = math.NaN()
