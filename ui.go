@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/nsf/termbox-go"
@@ -161,8 +160,6 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	}
 }
 
-var cellFmtString = "%-" + strconv.Itoa(MAX_CELL_WIDTH) + "s"
-
 func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.Attribute) int {
 	colOpts := ui.columnOpts[index]
 	lastCol := index == len(ui.columnOpts)-1
@@ -175,15 +172,15 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 	if colOpts.collapsed {
 		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
 	} else if !colOpts.expanded && len(cell) < MAX_CELL_WIDTH {
-		padded := fmt.Sprintf(cellFmtString, cell)
+		padded := fmt.Sprintf("%-*s", MAX_CELL_WIDTH, cell)
 		x = writeStringBounded(x, y, pinBound, fg, bg, padded)
 	} else if !colOpts.expanded && !lastCol {
 		width := clamp(len(cell)-1, 0, MAX_CELL_WIDTH-1)
 		x = writeStringBounded(x, y, pinBound, fg, bg, cell[:width])
 		x = writeStringBounded(x, y, pinBound, fg, bg, "…")
 	} else {
-		fmtString := "%-" + strconv.Itoa(colOpts.width) + "s"
-		writeStringBounded(x, y, pinBound, fg, bg, fmt.Sprintf(fmtString, cell))
+		str := fmt.Sprintf("%-*s", colOpts.width, cell)
+		writeStringBounded(x, y, pinBound, fg, bg, str)
 		x += colOpts.width
 	}
 

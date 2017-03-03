@@ -401,8 +401,6 @@ func (h *HandlerPopup) Repaint() {
 	x := width/2 - popupW/2
 	y := height/2 - popupH/2
 
-	fmtString := "%s%-" + strconv.Itoa(popupW) + "s%s"
-
 	borders := [][]string{
 		[]string{"┌─", "─┐"},
 		[]string{"│ ", " │"},
@@ -431,7 +429,7 @@ func (h *HandlerPopup) Repaint() {
 			content = strings.Repeat("─", popupW)
 		}
 
-		line := fmt.Sprintf(fmtString, border[0], content, border[1])
+		line := fmt.Sprintf("%s%-*s%s", border[0], popupW, content, border[1])
 		writeString(x, y+i, termbox.ColorWhite, termbox.ColorDefault, line)
 	}
 
