@@ -82,6 +82,22 @@ func (c *columnOptions) toggleDisplay(mode ColumnDisplay) {
 	}
 }
 
+func (c columnOptions) displayWidth() int {
+	switch c.display {
+	case ColumnAligned:
+		return clamp(c.width, 16, c.width)
+	case ColumnCollapsed:
+		return 1
+	case ColumnExpanded:
+		return c.width
+	case ColumnDefault:
+		return clamp(c.width, 1, MAX_CELL_WIDTH)
+	}
+
+	panic("TODO: this is a bug")
+	return -1
+}
+
 type filter interface {
 	matches(row []string) bool
 }
@@ -385,11 +401,11 @@ func (ui *UI) repaint() {
 
 	const coldef = termbox.ColorDefault
 
-	ui.writeColumns(ui.offsetX, 0)
+	ui.writeColumns(-ui.offsetX, 0)
 
 	for i := 0; i < vh; i += 1 {
 		if i+ui.offsetY < len(ui.filterMatches) {
-			ui.writeRow(ui.offsetX, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
+			ui.writeRow(-ui.offsetX, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
 		} else {
 			writeLine(0, i+1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack, "~")
 		}
@@ -404,38 +420,34 @@ func (ui *UI) viewSize() (int, int) {
 	return width, height - 2
 }
 
-func (ui *UI) endOfLine() int {
-	x := 0
+func (ui *UI) columnOffset(colIdx int) (offset int, width int) {
+	offset = 0
 
 	for i, _ := range ui.columns {
 		colOpts := ui.columnOpts[i]
 
-		if !colOpts.pinned {
-			switch colOpts.display {
-			case ColumnAligned:
-				x += clamp(colOpts.width, 16, colOpts.width)
-			case ColumnCollapsed:
-				x += 1
-			case ColumnExpanded:
-				x += colOpts.width
-			case ColumnDefault:
-				x += clamp(colOpts.width, 1, MAX_CELL_WIDTH)
+		// Pinned columns should always be visible
+		if i == colIdx {
+			if colOpts.pinned {
+				return 0, colOpts.width
+			} else {
+				break
 			}
+		}
 
-			x += len(CELL_SEPARATOR)
+		if !colOpts.pinned {
+			width = colOpts.displayWidth()
+			offset += width
+			offset += len(CELL_SEPARATOR)
 		}
 	}
 
-	return x
+	return offset, width
 }
 
 // TODO: Write me, stop manually scrolling
 func (ui *UI) scroll(rows int) {
 
-}
-
-// TODO: Write me, stop manually panning
-func (ui *UI) panTo(col int) {
 }
 
 var globalExpanded = false
