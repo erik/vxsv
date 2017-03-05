@@ -65,33 +65,6 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.pushHandler(&HandlerFilter{*h})
 		ui.offsetY = 0
-	case ev.Key == termbox.KeyEnter:
-		jsonObj := make(map[string]interface{})
-
-		row := ui.rows[ui.offsetY]
-		for i, col := range ui.columns {
-			str := row[i]
-
-			if v, err := strconv.ParseInt(str, 10, 64); err == nil {
-				jsonObj[col] = v
-			} else if v, err := strconv.ParseFloat(str, 64); err == nil {
-				jsonObj[col] = v
-			} else if v, err := strconv.ParseBool(str); err == nil {
-				jsonObj[col] = v
-			} else {
-				jsonObj[col] = str
-			}
-
-		}
-
-		jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
-		// TODO: This should be handled
-		if err != nil {
-			panic(err)
-		}
-
-		ui.pushHandler(NewPopup(h.ui, string(jsonStr)))
-
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
 	case ev.Ch == 'C':
@@ -114,6 +87,8 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		globalExpanded = !globalExpanded
 	case ev.Ch == '?':
 		ui.pushHandler(NewPopup(h.ui, HELP_TEXT))
+	case ev.Ch == 'r':
+		ui.pushHandler(&HandlerRowSelect{*h, h.ui.offsetY})
 	}
 }
 
@@ -169,6 +144,70 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 
 	ui.offsetY = 0
 	ui.filterRows(true)
+}
+
+type HandlerRowSelect struct {
+	HandlerDefault
+	rowIdx int
+}
+
+func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
+	ui := h.ui
+
+	switch ev.Key {
+	case termbox.KeyEsc, termbox.KeyCtrlG:
+		ui.popHandler()
+	case termbox.KeyArrowUp:
+		h.rowIdx = clamp(h.rowIdx-1, 0, len(ui.filterMatches))
+	case termbox.KeyArrowDown:
+		h.rowIdx = clamp(h.rowIdx+1, 0, len(ui.filterMatches))
+	case termbox.KeyEnter:
+		jsonObj := make(map[string]interface{})
+
+		row := ui.rows[h.rowIdx]
+		for i, col := range ui.columns {
+			str := row[i]
+
+			if v, err := strconv.ParseInt(str, 10, 64); err == nil {
+				jsonObj[col] = v
+			} else if v, err := strconv.ParseFloat(str, 64); err == nil {
+				jsonObj[col] = v
+			} else if v, err := strconv.ParseBool(str); err == nil {
+				jsonObj[col] = v
+			} else {
+				jsonObj[col] = str
+			}
+
+		}
+
+		jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
+		// TODO: This should be handled
+		if err != nil {
+			panic(err)
+		}
+
+		ui.pushHandler(NewPopup(ui, string(jsonStr)))
+	default:
+		def := &HandlerDefault{ui}
+		def.HandleKey(ev)
+	}
+
+	_, height := ui.viewSize()
+	if h.rowIdx-ui.offsetY >= height {
+		ui.offsetY = clamp(ui.offsetY+1, 0, len(ui.filterMatches))
+	} else if h.rowIdx < ui.offsetY {
+		ui.offsetY = h.rowIdx
+	}
+}
+
+func (h *HandlerRowSelect) Repaint() {
+	ui := h.ui
+	_, height := termbox.Size()
+
+	termbox.SetCell(0, 1+h.rowIdx-ui.offsetY, ROW_INDICATOR, termbox.ColorRed|termbox.AttrBold, termbox.ColorWhite)
+
+	line := fmt.Sprintf("ROW SELECT (^g quit) [%d of %d]", h.rowIdx, len(ui.filterMatches))
+	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 }
 
 type HandlerColumnSelect struct {

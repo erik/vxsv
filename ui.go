@@ -95,7 +95,6 @@ func (c columnOptions) displayWidth() int {
 	}
 
 	panic("TODO: this is a bug")
-	return -1
 }
 
 type filter interface {
