@@ -94,6 +94,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 
 type HandlerFilter struct {
 	HandlerDefault
+	filter string
 }
 
 func (h *HandlerFilter) Repaint() {

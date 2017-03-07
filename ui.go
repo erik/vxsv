@@ -106,10 +106,22 @@ type rowFilter struct {
 	caseSensitive bool
 }
 
+type ComparisonType int
+
+const (
+	CmpEq = iota
+	CmpNeq
+	CmpGt
+	CmpGte
+	CmpLt
+	CmpLte
+)
+
 type columnFilter struct {
 	filter        string
 	caseSensitive bool
 	colIdx        int
+	cmpType       ComparisonType
 }
 
 func (f rowFilter) matches(row []string) bool {
@@ -128,6 +140,7 @@ func (f rowFilter) matches(row []string) bool {
 }
 
 func (f columnFilter) matches(row []string) bool {
+
 	if f.caseSensitive {
 		return row[f.colIdx] == f.filter
 	}
