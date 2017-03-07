@@ -279,7 +279,7 @@ func NewUi(data *TabularData) *UI {
 		columns:       columns,
 		width:         data.Width,
 		zebraStripe:   false,
-		filter: RowFilter{"", false},
+		filter:        RowFilter{"", false},
 		filterString:  "",
 		filterMatches: filterMatches,
 	}

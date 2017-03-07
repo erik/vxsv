@@ -1,9 +1,11 @@
 package main
 
 import (
-	"strings"
-	"regexp"
 	"fmt"
+	"math"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 type Filter interface {
@@ -46,69 +48,106 @@ const (
 )
 
 type ColumnFilter struct {
-	filter, value string
-	valueFloat    float64
-	cmpType       ComparisonType
-	colIdx        int
+	value      string
+	valueFloat float64
+	cmpType    ComparisonType
+	colIdx     int
 }
 
 var CMP_OP_REGEX = regexp.MustCompile(`^(.+)([!=><]+)(.+)$`)
 
 // parse a filter string into an instance of the Filter interface
-func parseFilter(fs string) Filter {
+func (ui *UI) parseFilter(fs string) (Filter, error) {
 	if match := CMP_OP_REGEX.FindStringSubmatch(fs); len(match) > 0 {
-		var cmpType ComparisonType
+		filter := ColumnFilter{}
+
+		var (
+			column = strings.TrimSpace(match[1])
+			oper   = match[2]
+			value  = strings.TrimSpace(match[3])
+		)
 
 		fmt.Printf("match is: %v\n", match)
 
-		switch match[2] {
-		case "=", "==":
-			cmpType = CmpEq
-		case "!=":
-			cmpType = CmpNeq
-		case ">":
-			cmpType = CmpGt
-		case ">=":
-			cmpType = CmpGte
-		case "<":
-			cmpType = CmpLt
-		case "<=":
-			cmpType = CmpLte
-		default:
-
+		filter.colIdx = -1
+		for i, col := range ui.columns {
+			if col == column {
+				filter.colIdx = i
+				break
+			}
 		}
 
-		fmt.Printf("cmptype is %v\n", cmpType)
+		if filter.colIdx == -1 {
+			return nil, fmt.Errorf("No such column: \"%s\"", column)
+		}
 
-		return ColumnFilter{}
+		switch oper {
+		case "=", "==":
+			filter.cmpType = CmpEq
+		case "!=":
+			filter.cmpType = CmpNeq
+		case ">":
+			filter.cmpType = CmpGt
+		case ">=":
+			filter.cmpType = CmpGte
+		case "<":
+			filter.cmpType = CmpLt
+		case "<=":
+			filter.cmpType = CmpLte
+		default:
+			return nil, fmt.Errorf("No such comparison operation: \"%s\"", oper)
+		}
+
+		filter.value = value
+		if val, err := strconv.ParseFloat(value, 64); err == nil {
+			filter.valueFloat = val
+		} else {
+			filter.valueFloat = math.NaN()
+		}
+
+		return filter, nil
 	} else {
 		return RowFilter{
-			filter: fs,
+			filter:        fs,
 			caseSensitive: false,
-		}
+		}, nil
 	}
 }
 
 func (f ColumnFilter) matches(row []string) bool {
-	var v1, v2 float64
+	valStr := row[f.colIdx]
 
-	switch f.cmpType {
-	case CmpEq:
-		return v1 == v2
-	case CmpNeq:
-		return v1 != v2
-	case CmpGt:
-		return v1 > v2
-	case CmpGte:
-		return v1 >= v2
-	case CmpLt:
-		return v1 < v2
-	case CmpLte:
-		return v1 <= v2
+	if math.IsNaN(f.valueFloat) {
+		switch f.cmpType {
+		case CmpEq:
+			return f.value == valStr
+		case CmpNeq:
+			return f.value != valStr
+		case CmpGt:
+			return f.value > valStr
+		case CmpGte:
+			return f.value >= valStr
+		case CmpLt:
+			return f.value < valStr
+		case CmpLte:
+			return f.value <= valStr
+		}
+	} else if val, err := strconv.ParseFloat(strings.TrimSpace(valStr), 64); err == nil {
+		switch f.cmpType {
+		case CmpEq:
+			return f.valueFloat == val
+		case CmpNeq:
+			return f.valueFloat != val
+		case CmpGt:
+			return f.valueFloat > val
+		case CmpGte:
+			return f.valueFloat >= val
+		case CmpLt:
+			return f.valueFloat < val
+		case CmpLte:
+			return f.valueFloat <= val
+		}
 	}
 
-	lowerFilter := strings.ToLower(f.filter)
-	lowerCol := strings.ToLower(row[f.colIdx])
-
-	return strings.Contains(lowerCol, lowerFilter)
+	return false
 }
