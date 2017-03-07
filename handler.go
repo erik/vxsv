@@ -5,13 +5,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/montanaflynn/stats"
 	"github.com/nsf/termbox-go"
-	"math"
 )
 
 type ModeHandler interface {
@@ -63,7 +63,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowDown:
 		ui.offsetY = clamp(ui.offsetY+1, 0, maxYOffset)
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
-		ui.pushHandler(&HandlerFilter{*h})
+		ui.pushHandler(&HandlerFilter{*h, ""})
 		ui.offsetY = 0
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)

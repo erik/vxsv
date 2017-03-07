@@ -97,65 +97,11 @@ func (c columnOptions) displayWidth() int {
 	panic("TODO: this is a bug")
 }
 
-type filter interface {
-	matches(row []string) bool
-}
-
-type rowFilter struct {
-	filter        string
-	caseSensitive bool
-}
-
-type ComparisonType int
-
-const (
-	CmpEq = iota
-	CmpNeq
-	CmpGt
-	CmpGte
-	CmpLt
-	CmpLte
-)
-
-type columnFilter struct {
-	filter        string
-	caseSensitive bool
-	colIdx        int
-	cmpType       ComparisonType
-}
-
-func (f rowFilter) matches(row []string) bool {
-	for _, col := range row {
-		if f.caseSensitive && strings.Contains(col, f.filter) {
-			return true
-		} else if !f.caseSensitive {
-			lowerFilter := strings.ToLower(f.filter)
-			lowerCol := strings.ToLower(col)
-			if strings.Contains(lowerCol, lowerFilter) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (f columnFilter) matches(row []string) bool {
-
-	if f.caseSensitive {
-		return row[f.colIdx] == f.filter
-	}
-
-	lowerFilter := strings.ToLower(f.filter)
-	lowerCol := strings.ToLower(row[f.colIdx])
-
-	return strings.Contains(lowerCol, lowerFilter)
-}
-
 type UI struct {
 	handlers         []ModeHandler
 	rowIdx           int // Selection control
 	offsetX, offsetY int // Pan control
-	filters          []filter
+	filter           Filter
 	filterString     string
 	filterMatches    []int
 	zebraStripe      bool
@@ -333,7 +279,7 @@ func NewUi(data *TabularData) *UI {
 		columns:       columns,
 		width:         data.Width,
 		zebraStripe:   false,
-		filters:       []filter{},
+		filter: RowFilter{"", false},
 		filterString:  "",
 		filterMatches: filterMatches,
 	}
