@@ -45,7 +45,13 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	vw, vh := ui.viewSize()
 
 	maxYOffset := clamp(len(ui.filterMatches)-(vh-2), 0, len(ui.filterMatches)-1)
-	endOfLine, _ := ui.columnOffset(len(ui.columns) - 1)
+	lastColumnOffset, _ := ui.columnOffset(len(ui.columns) - 1)
+	endOfLine := lastColumnOffset - vw
+
+	// prevent funky scrolling behavior when row is smaller than screen
+	if endOfLine < 0 {
+		endOfLine = 0
+	}
 
 	switch {
 	case ev.Key == termbox.KeyCtrlL:
@@ -53,11 +59,11 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeyCtrlA:
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
-		ui.offsetX = endOfLine - vw
+		ui.offsetX = endOfLine
 	case ev.Key == termbox.KeyArrowRight:
-		ui.offsetX = clamp(ui.offsetX+5, 0, endOfLine-vw)
+		ui.offsetX = clamp(ui.offsetX+5, 0, endOfLine)
 	case ev.Key == termbox.KeyArrowLeft:
-		ui.offsetX = clamp(ui.offsetX-5, 0, endOfLine-vw)
+		ui.offsetX = clamp(ui.offsetX-5, 0, endOfLine)
 	case ev.Key == termbox.KeyArrowUp:
 		ui.offsetY = clamp(ui.offsetY-1, 0, maxYOffset)
 	case ev.Key == termbox.KeyArrowDown:
