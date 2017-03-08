@@ -24,7 +24,7 @@ func main() {
 	usage := `view [x] separated values
 
 Usage:
-  vxsv [-tpxsd DELIMITER] ([-] | [<PATH>])
+  vxsv [-tpmxsd DELIMITER] ([-] | [<PATH>])
   vxsv -h | --help
 
 Arguments:
@@ -35,7 +35,8 @@ Options:
   -s --stream                 handle streaming data.
   -d --delimiter=<DELIMITER>  separator for values [default: ,].
   -t --tabs                   use tabs as separator value.
-  -p --psql                   parse output of psql tool, when used as a pager.
+  -p --psql                   parse output of psql cli (used as a pager)
+  -m --mysql                  parse output of mysql cli
 `
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
@@ -59,6 +60,11 @@ Options:
 	if args["--psql"] == true {
 		if data, err = ReadPsqlTable(reader); err != nil {
 			fmt.Printf("Failed to read PSQL data: %v", err)
+			os.Exit(1)
+		}
+	} else if args["--mysql"] == true {
+		if data, err = ReadMySqlTable(reader); err != nil {
+			fmt.Printf("Failed to read MySQL data: %v", err)
 			os.Exit(1)
 		}
 	} else {

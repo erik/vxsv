@@ -37,6 +37,41 @@ func ReadPsqlTable(reader io.Reader) (*TabularData, error) {
 	}, nil
 }
 
+func ReadMySqlTable(reader io.Reader) (*TabularData, error) {
+	scanner := bufio.NewScanner(reader)
+
+	// Skip leading horizontal line
+	scanner.Scan()
+
+	scanner.Scan()
+	columnString := scanner.Text()
+	columns := parseColumns(columnString[1 : len(columnString)-2])
+
+	// Skip trailing horizontal line
+	scanner.Scan()
+
+	rows := [][]string{}
+	for scanner.Scan() {
+		row := scanner.Text()
+
+		// last line
+		if row[0] == '+' {
+			break
+		}
+
+		rows = append(rows, parseRow(columns, row[1:len(row)-2]))
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return &TabularData{
+		Columns: columns,
+		Rows:    rows,
+	}, nil
+}
+
 func parseColumns(columnString string) []Column {
 	split := strings.Split(columnString, " | ")
 
@@ -69,6 +104,8 @@ func parseRow(columns []Column, str string) []string {
 		} else {
 			row[i] = str[offset : offset+col.Width]
 		}
+
+		row[i] = strings.TrimSpace(row[i])
 
 		offset += col.Width + 3
 	}
