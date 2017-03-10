@@ -440,11 +440,18 @@ func NewPopup(ui *UI, content string) *HandlerPopup {
 	}
 }
 
-func (h *HandlerPopup) Repaint() {
+func (h *HandlerPopup) size() (int, int) {
 	width, height := termbox.Size()
 
 	popupW := clamp(120, 50, width-15)
-	popupH := clamp(len(h.content)+2, 10, height-5)
+	popupH := clamp(len(h.content), 10, height-5)
+
+	return popupW, popupH
+}
+
+func (h *HandlerPopup) Repaint() {
+	width, height := termbox.Size()
+	popupW, popupH := h.size()
 
 	x := width/2 - popupW/2
 	y := height/2 - popupH/2
@@ -491,14 +498,19 @@ func (h *HandlerPopup) HandleKey(ev termbox.Event) {
 		h.ui.popHandler()
 	}
 
+	_, maxScroll := h.size()
+	if maxScroll >= len(h.content) {
+		maxScroll = 0
+	}
+
 	switch ev.Key {
 	case termbox.KeyArrowLeft:
 		h.offsetX = clamp(h.offsetX-5, 0, 9999)
 	case termbox.KeyArrowRight:
 		h.offsetX = clamp(h.offsetX+5, 0, 9999)
 	case termbox.KeyArrowUp:
-		h.offsetY = clamp(h.offsetY-1, 0, len(h.content)-5)
+		h.offsetY = clamp(h.offsetY-1, 0, maxScroll)
 	case termbox.KeyArrowDown:
-		h.offsetY = clamp(h.offsetY+1, 0, len(h.content)-5)
+		h.offsetY = clamp(h.offsetY+1, 0, maxScroll)
 	}
 }
