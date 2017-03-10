@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/nsf/termbox-go"
 )
@@ -102,7 +101,6 @@ type UI struct {
 	rowIdx           int // Selection control
 	offsetX, offsetY int // Pan control
 	filter           Filter
-	filterString     string
 	filterMatches    []int
 	zebraStripe      bool
 	columnOpts       []columnOptions
@@ -150,6 +148,11 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	for i := x; i < width; i += 1 {
 		termbox.SetCell(x+i, y, ' ', fg, bg)
 	}
+}
+
+// TODO: Write me
+func (ui *UI) writeModeLine(left, right string) {
+
 }
 
 func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.Attribute) int {
@@ -279,8 +282,7 @@ func NewUi(data *TabularData) *UI {
 		columns:       columns,
 		width:         data.Width,
 		zebraStripe:   false,
-		filter:        RowFilter{"", false},
-		filterString:  "",
+		filter:        EmptyFilter{},
 		filterMatches: filterMatches,
 	}
 
@@ -320,18 +322,14 @@ eventloop:
 
 // Return indices of rows to display
 func (ui *UI) filterRows(narrowing bool) {
-
 	// If we are adding a character to the filter, no need to start from
 	// scratch, this will be a strict subset of our current filter.
 	if narrowing {
 		rows := make([]int, 0, len(ui.filterMatches))
 
 		for _, rowIdx := range ui.filterMatches {
-			for _, col := range ui.rows[rowIdx] {
-				if strings.Contains(col, ui.filterString) {
-					rows = append(rows, rowIdx)
-					break
-				}
+			if ui.filter.Matches(ui.rows[rowIdx]) {
+				rows = append(rows, rowIdx)
 			}
 		}
 
@@ -339,12 +337,10 @@ func (ui *UI) filterRows(narrowing bool) {
 	} else {
 		rows := make([]int, 0, 100)
 
+		// FIXME: this +ui.offsetY thing feels like a bug
 		for i := 0; i+ui.offsetY < len(ui.rows); i += 1 {
-			for _, col := range ui.rows[i+ui.offsetY] {
-				if ui.filterString == "" || strings.Contains(col, ui.filterString) {
-					rows = append(rows, i)
-					break
-				}
+			if ui.filter.Matches(ui.rows[i+ui.offsetY]) {
+				rows = append(rows, i)
 			}
 		}
 

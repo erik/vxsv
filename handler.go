@@ -32,8 +32,8 @@ func (h *HandlerDefault) Repaint() {
 	total := len(ui.filterMatches) - 1
 	filter := ""
 
-	if ui.filterString != "" {
-		filter = fmt.Sprintf("[filter: \"%s\"] ", ui.filterString)
+	if _, ok := ui.filter.(EmptyFilter); !ok {
+		filter = fmt.Sprintf("[filter: \"%s\"] ", ui.filter.String())
 	}
 
 	line := fmt.Sprintf("%s[rows %d-%d of %d] :%d, %d", filter, first, last, total, ui.offsetX, ui.offsetY)
@@ -69,7 +69,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Key == termbox.KeyArrowDown:
 		ui.offsetY = clamp(ui.offsetY+1, 0, maxYOffset)
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
-		ui.pushHandler(&HandlerFilter{*h, ""})
+		ui.pushHandler(&HandlerFilter{*h, ui.filter.String()})
 		ui.offsetY = 0
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
@@ -107,7 +107,7 @@ func (h *HandlerFilter) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
 
-	line := fmt.Sprintf("FILTER [%d matches]: %s", len(ui.filterMatches), ui.filterString)
+	line := fmt.Sprintf("FILTER [%d matches]: %s", len(ui.filterMatches), h.filter)
 	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 	termbox.SetCursor(len(line), height-1)
 
@@ -121,18 +121,24 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
 			ui.popHandler()
 
-			ui.filterString = ""
+			ui.filter = EmptyFilter{}
 			ui.filterRows(false)
 		} else if ev.Key == termbox.KeyEnter {
+			if filter, err := ui.parseFilter(h.filter); err == nil {
+				ui.filter = filter
+			} else {
+				ui.pushHandler(NewPopup(ui, fmt.Sprintf("There was an error in your filter:\n\n%v\n\n%s", err, h.filter)))
+				return
+			}
+			ui.filterRows(false)
 			ui.popHandler()
 		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
 			ev.Key == termbox.KeyBackspace2 {
-			if sz := len(ui.filterString); sz > 0 {
-				ui.filterString = ui.filterString[:sz-1]
-				ui.filterRows(false)
+			if sz := len(h.filter); sz > 0 {
+				h.filter = h.filter[:sz-1]
 			}
 		} else if ev.Key == termbox.KeyCtrlW || ev.Key == termbox.KeyCtrlU {
-			ui.filterString = ""
+			h.filter = ""
 			ui.filterRows(false)
 		} else {
 			// Fallback to default handling for arrows etc
@@ -144,9 +150,9 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 	}
 
 	if ev.Key == termbox.KeySpace {
-		ui.filterString += " "
+		h.filter += " "
 	} else {
-		ui.filterString += string(ev.Ch)
+		h.filter += string(ev.Ch)
 	}
 
 	ui.offsetY = 0

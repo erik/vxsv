@@ -37,6 +37,15 @@ func ReadPsqlTable(reader io.Reader) (*TabularData, error) {
 	}, nil
 }
 
+// Parses MySQL output format:
+//
+// +------+------+------+
+// | colA | colB | colC |
+// +------+------+------+
+// | foo  | bar  | baz  |
+// | foo2 | bar2 | baz2 |
+// +------+------+------+
+// 2 rows in set
 func ReadMySqlTable(reader io.Reader) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 

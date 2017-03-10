@@ -9,15 +9,22 @@ import (
 )
 
 type Filter interface {
-	matches(row []string) bool
+	String() string
+	Matches(row []string) bool
 }
+
+type EmptyFilter struct{}
+
+func (f EmptyFilter) String() string        { return "" }
+func (f EmptyFilter) Matches([]string) bool { return true }
 
 type RowFilter struct {
 	filter        string
 	caseSensitive bool
 }
 
-func (f RowFilter) matches(row []string) bool {
+func (f RowFilter) String() string { return f.filter }
+func (f RowFilter) Matches(row []string) bool {
 	if f.filter == "" {
 		return true
 	}
@@ -48,26 +55,36 @@ const (
 )
 
 type ColumnFilter struct {
+	expression string
 	value      string
 	valueFloat float64
 	cmpType    ComparisonType
 	colIdx     int
 }
 
-var CMP_OP_REGEX = regexp.MustCompile(`^(.+)([!=><]+)(.+)$`)
+const OP_CHARS = "!=><"
+
+var CMP_OP_REGEX = regexp.MustCompile(`^(.+?)([!=><]+)(.+)$`)
 
 // parse a filter string into an instance of the Filter interface
 func (ui *UI) parseFilter(fs string) (Filter, error) {
+	if !strings.ContainsAny(fs, OP_CHARS) {
+		return RowFilter{
+			filter:        fs,
+			caseSensitive: false,
+		}, nil
+	}
+
 	if match := CMP_OP_REGEX.FindStringSubmatch(fs); len(match) > 0 {
-		filter := ColumnFilter{}
+		filter := ColumnFilter{
+			expression: fs,
+		}
 
 		var (
 			column = strings.TrimSpace(match[1])
 			oper   = match[2]
 			value  = strings.TrimSpace(match[3])
 		)
-
-		fmt.Printf("match is: %v\n", match)
 
 		filter.colIdx = -1
 		for i, col := range ui.columns {
@@ -106,46 +123,44 @@ func (ui *UI) parseFilter(fs string) (Filter, error) {
 		}
 
 		return filter, nil
-	} else {
-		return RowFilter{
-			filter:        fs,
-			caseSensitive: false,
-		}, nil
 	}
+
+	return nil, fmt.Errorf("Filter didn't match expected format: %v", CMP_OP_REGEX)
 }
 
-func (f ColumnFilter) matches(row []string) bool {
+func (f ColumnFilter) String() string { return f.expression }
+func (f ColumnFilter) Matches(row []string) bool {
 	valStr := row[f.colIdx]
 
 	if math.IsNaN(f.valueFloat) {
 		switch f.cmpType {
 		case CmpEq:
-			return f.value == valStr
+			return valStr == f.value
 		case CmpNeq:
-			return f.value != valStr
+			return valStr != f.value
 		case CmpGt:
-			return f.value > valStr
+			return valStr > f.value
 		case CmpGte:
-			return f.value >= valStr
+			return valStr >= f.value
 		case CmpLt:
-			return f.value < valStr
+			return valStr < f.value
 		case CmpLte:
-			return f.value <= valStr
+			return valStr <= f.value
 		}
 	} else if val, err := strconv.ParseFloat(strings.TrimSpace(valStr), 64); err == nil {
 		switch f.cmpType {
 		case CmpEq:
-			return f.valueFloat == val
+			return val == f.valueFloat
 		case CmpNeq:
-			return f.valueFloat != val
+			return val != f.valueFloat
 		case CmpGt:
-			return f.valueFloat > val
+			return val > f.valueFloat
 		case CmpGte:
-			return f.valueFloat >= val
+			return val >= f.valueFloat
 		case CmpLt:
-			return f.valueFloat < val
+			return val < f.valueFloat
 		case CmpLte:
-			return f.valueFloat <= val
+			return val <= f.valueFloat
 		}
 	}
 
