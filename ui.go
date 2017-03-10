@@ -29,6 +29,7 @@ DEFAULT MODE
   [ENTER]         pop open dialog showing row in detail
   [SPACE]         scroll down one screen
   C               enter ** COLUMN SELECT MODE **
+  R               enter ** ROW SELECT MODE **
   G               scroll to bottom
   g               scroll to top
   Z               toggle zebra stripes
@@ -55,6 +56,12 @@ FILTER MODE
   [ESC], Ctrl g   clear filter and return to ** DEFAULT MODE **
   Ctrl w          clear filter
   [ENTER]         apply filter and return to default mode
+
+ROW SELECT MODE
+
+  <arrow keys>    select row
+  [ENTER]         Pop open expanded row dialog.
+
 `
 
 type ColumnDisplay int
