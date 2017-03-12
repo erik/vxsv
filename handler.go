@@ -124,10 +124,14 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 			ui.filter = EmptyFilter{}
 			ui.filterRows(false)
 		} else if ev.Key == termbox.KeyEnter {
-			if filter, err := ui.parseFilter(h.filter); err == nil {
+			if h.filter == "" {
+				ui.filter = EmptyFilter{}
+			} else if filter, err := ui.parseFilter(h.filter); err == nil {
 				ui.filter = filter
 			} else {
-				ui.pushHandler(NewPopup(ui, fmt.Sprintf("There was an error in your filter:\n\n%v\n\n%s", err, h.filter)))
+				errString := fmt.Sprintf("There was an error in your filter:"+
+					"\n\n%v\n\n%s", err, h.filter)
+				ui.pushHandler(NewPopup(ui, errString))
 				return
 			}
 			ui.filterRows(false)
