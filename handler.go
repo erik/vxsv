@@ -280,7 +280,6 @@ func (h *HandlerColumnSelect) Repaint() {
 // FIXME: column highlighted.
 func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	ui := h.ui
-	savedColumn := -1
 	colOpt := &ui.columnOpts[h.column]
 
 	switch {
@@ -394,14 +393,15 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		ui.pushHandler(NewPopup(ui, text))
 
 		break
-		// TODO: handle rror for real
+		// TODO: handle error for real
 	error:
 		fmt.Printf("%v\n", err)
 		panic(err)
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
-		savedColumn = h.column
+		ui.offsetX = 0
 		h.selectColumn(-1)
 		ui.popHandler()
+		return
 	default:
 		// FIXME: ditto, is this the best way to do this?
 		def := &HandlerDefault{h.ui}
@@ -409,31 +409,16 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	}
 
 	// find if we've gone off screen and readjust
-	// TODO: this bit is buggy
-	cursorPosition := 0
-	for i, _ := range ui.columns {
-		colOpts := ui.columnOpts[i]
+	// TODO: this bit is buggy when scrolling right
+	columnOffset, colWidth := ui.columnOffset(h.column)
+	viewWidth, _ := ui.viewSize()
 
-		if i == h.column || i == savedColumn {
-			break
-		}
-
-		switch colOpts.display {
-		case ColumnCollapsed:
-			cursorPosition += 1
-		case ColumnExpanded:
-			cursorPosition += colOpts.width
-		case ColumnDefault:
-			cursorPosition += clamp(colOpts.width, 0, MAX_CELL_WIDTH)
-		}
-
-		cursorPosition += len(CELL_SEPARATOR)
+	if ui.offsetX+viewWidth < columnOffset || columnOffset-colWidth < ui.offsetX {
+		ui.offsetX = columnOffset - colWidth
 	}
 
-	width, _ := ui.viewSize()
-	if cursorPosition > width-ui.offsetX || cursorPosition < -ui.offsetX {
-		ui.offsetX = -cursorPosition
-	}
+	lastColumnOffset, _ := ui.columnOffset(len(ui.columns) - 1)
+	ui.offsetX = clamp(ui.offsetX, 0, lastColumnOffset-viewWidth)
 }
 
 type HandlerPopup struct {
