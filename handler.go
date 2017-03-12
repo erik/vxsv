@@ -398,7 +398,6 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		fmt.Printf("%v\n", err)
 		panic(err)
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
-		ui.offsetX = 0
 		h.selectColumn(-1)
 		ui.popHandler()
 		return
@@ -411,9 +410,10 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	// find if we've gone off screen and readjust
 	// TODO: this bit is buggy when scrolling right
 	columnOffset, colWidth := ui.columnOffset(h.column)
+	width, _ := termbox.Size()
 	viewWidth, _ := ui.viewSize()
 
-	if ui.offsetX+viewWidth < columnOffset || columnOffset-colWidth < ui.offsetX {
+	if ui.offsetX+width < columnOffset || columnOffset-colWidth < ui.offsetX {
 		ui.offsetX = columnOffset - colWidth
 	}
 

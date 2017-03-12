@@ -378,7 +378,20 @@ func (ui *UI) repaint() {
 
 func (ui *UI) viewSize() (int, int) {
 	width, height := termbox.Size()
-	return width, height - 2
+	pinnedWidth := ui.pinnedWidth()
+
+	return width - pinnedWidth, height - 2
+}
+
+func (ui *UI) pinnedWidth() (width int) {
+	for _, colOpt := range ui.columnOpts {
+		if colOpt.pinned {
+			width += colOpt.displayWidth()
+			width += len(CELL_SEPARATOR)
+		}
+	}
+
+	return width
 }
 
 func (ui *UI) columnOffset(colIdx int) (offset int, width int) {
