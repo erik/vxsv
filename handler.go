@@ -301,6 +301,8 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
 			return h.rowSorter(j, i)
 		})
+	case ev.Ch == 'C':
+		h.selectColumn(0)
 	case ev.Ch == 'w':
 		colOpt.toggleDisplay(ColumnCollapsed)
 	case ev.Ch == 'x':
