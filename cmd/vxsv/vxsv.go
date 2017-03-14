@@ -41,8 +41,8 @@ Options:
 	reader := io.Reader(os.Stdin)
 
 	if args["<PATH>"] != nil {
-		file_name, _ := args["<PATH>"].(string)
-		file, err := os.Open(file_name)
+		fileName, _ := args["<PATH>"].(string)
+		file, err := os.Open(fileName)
 		if err != nil {
 			panic("Failed to open file")
 		}
@@ -60,12 +60,12 @@ Options:
 	}
 
 	if args["--psql"] == true {
-		if data, err = vxsv.ReadPsqlTable(reader, count); err != nil {
+		if data, err = vxsv.ReadPSQLTable(reader, count); err != nil {
 			fmt.Printf("Failed to read PSQL data: %v", err)
 			os.Exit(1)
 		}
 	} else if args["--mysql"] == true {
-		if data, err = vxsv.ReadMySqlTable(reader, count); err != nil {
+		if data, err = vxsv.ReadMySQLTable(reader, count); err != nil {
 			fmt.Printf("Failed to read MySQL data: %v", err)
 			os.Exit(1)
 		}
@@ -87,7 +87,7 @@ Options:
 		}
 	}
 
-	ui := vxsv.NewUi(data)
+	ui := vxsv.NewUI(data)
 	if err := ui.Init(); err != nil {
 		fmt.Printf("Failed to initialize terminal UI: %v\n", err)
 		os.Exit(1)

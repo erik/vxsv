@@ -7,14 +7,14 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
-const MAX_CELL_WIDTH = 20
-const CELL_SEPARATOR = " │ "
-const ROW_INDICATOR = '»'
+const MaxCellWidth = 20
+const CellSeparator = " │ "
+const RowIndicator = '»'
 
-const HILITE_FG = termbox.ColorBlack | termbox.AttrBold
-const HILITE_BG = termbox.ColorWhite
+const HiliteFg = termbox.ColorBlack | termbox.AttrBold
+const HiliteBg = termbox.ColorWhite
 
-const HELP_TEXT = `Key Bindings:
+const HelpText = `Key Bindings:
 
 vxsv is a modal viewer, meaning that actions are only valid in certain
 contexts.
@@ -108,7 +108,7 @@ func (c columnOptions) displayWidth() int {
 	case ColumnExpanded:
 		return c.width
 	case ColumnDefault:
-		return clamp(c.width, 1, MAX_CELL_WIDTH)
+		return clamp(c.width, 1, MaxCellWidth)
 	}
 
 	panic("TODO: this is a bug")
@@ -143,7 +143,7 @@ func writeStringBounded(x, y, bound int, fg, bg termbox.Attribute, msg string) i
 		if x >= bound {
 			termbox.SetCell(x, y, c, fg, bg)
 		}
-		x += 1
+		x++
 	}
 	return x
 }
@@ -151,7 +151,7 @@ func writeStringBounded(x, y, bound int, fg, bg termbox.Attribute, msg string) i
 func writeString(x, y int, fg, bg termbox.Attribute, msg string) int {
 	for _, c := range msg {
 		termbox.SetCell(x, y, c, fg, bg)
-		x += 1
+		x++
 	}
 	return x
 }
@@ -161,9 +161,9 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	width, _ := termbox.Size()
 	for _, c := range line {
 		termbox.SetCell(x, y, c, fg, bg)
-		x += 1
+		x++
 	}
-	for i := x; i < width; i += 1 {
+	for i := x; i < width; i++ {
 		termbox.SetCell(x+i, y, ' ', fg, bg)
 	}
 }
@@ -177,15 +177,15 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 	colOpts := ui.columnOpts[index]
 
 	if colOpts.highlight {
-		fg = HILITE_FG
-		bg = HILITE_BG
+		fg = HiliteFg
+		bg = HiliteBg
 	}
 
 	formatted := cell
 
 	switch colOpts.display {
 	case ColumnDefault:
-		width := clamp(colOpts.width, 0, MAX_CELL_WIDTH)
+		width := clamp(colOpts.width, 0, MaxCellWidth)
 
 		if len(formatted) > width {
 			formatted = fmt.Sprintf("%-*s…", width-1, formatted[:width-1])
@@ -199,7 +199,7 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 	case ColumnCollapsed:
 		formatted = "…"
 	case ColumnAligned:
-		width := clamp(colOpts.width, 16, MAX_CELL_WIDTH)
+		width := clamp(colOpts.width, 16, MaxCellWidth)
 
 		if val, err := strconv.ParseFloat(cell, 64); err == nil {
 			formatted = fmt.Sprintf("%*.4f", width, val)
@@ -212,7 +212,7 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 
 	// Draw separator if this isn't the last element
 	if index != len(ui.columns)-1 {
-		x = writeStringBounded(x, y, pinBound, termbox.ColorWhite, termbox.ColorDefault, CELL_SEPARATOR)
+		x = writeStringBounded(x, y, pinBound, termbox.ColorWhite, termbox.ColorDefault, CellSeparator)
 	}
 
 	return x
@@ -259,7 +259,7 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	pinBound := ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
 	x += pinBound
 
-	for i, _ := range ui.columns {
+	for i := range ui.columns {
 		colOpts := ui.columnOpts[i]
 
 		if !colOpts.pinned {
@@ -268,7 +268,7 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	}
 }
 
-func NewUi(data *TabularData) *UI {
+func NewUI(data *TabularData) *UI {
 	colOpts := make([]columnOptions, len(data.Columns))
 	columns := make([]string, len(data.Columns))
 	filterMatches := make([]int, len(data.Rows))
@@ -288,7 +288,7 @@ func NewUi(data *TabularData) *UI {
 		}
 	}
 
-	for i, _ := range data.Rows {
+	for i := range data.Rows {
 		filterMatches[i] = i
 	}
 
@@ -356,7 +356,7 @@ func (ui *UI) filterRows(narrowing bool) {
 		rows := make([]int, 0, 100)
 
 		// FIXME: this +ui.offsetY thing feels like a bug
-		for i := 0; i+ui.offsetY < len(ui.rows); i += 1 {
+		for i := 0; i+ui.offsetY < len(ui.rows); i++ {
 			if ui.filter.Matches(ui.rows[i+ui.offsetY]) {
 				rows = append(rows, i)
 			}
@@ -375,7 +375,7 @@ func (ui *UI) repaint() {
 
 	ui.writeColumns(-ui.offsetX, 0)
 
-	for i := 0; i < vh; i += 1 {
+	for i := 0; i < vh; i++ {
 		if i+ui.offsetY < len(ui.filterMatches) {
 			ui.writeRow(-ui.offsetX, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
 		} else {
@@ -398,7 +398,7 @@ func (ui *UI) pinnedWidth() (width int) {
 	for _, colOpt := range ui.columnOpts {
 		if colOpt.pinned {
 			width += colOpt.displayWidth()
-			width += len(CELL_SEPARATOR)
+			width += len(CellSeparator)
 		}
 	}
 
@@ -408,22 +408,22 @@ func (ui *UI) pinnedWidth() (width int) {
 func (ui *UI) columnOffset(colIdx int) (offset int, width int) {
 	offset = 0
 
-	for i, _ := range ui.columns {
+	for i := range ui.columns {
 		colOpts := ui.columnOpts[i]
 
 		// Pinned columns should always be visible
 		if i == colIdx {
-			if colOpts.pinned {
-				return 0, colOpts.width
-			} else {
+			if !colOpts.pinned {
 				break
 			}
+
+			return 0, colOpts.width
 		}
 
 		if !colOpts.pinned {
 			width = colOpts.displayWidth()
 			offset += width
-			offset += len(CELL_SEPARATOR)
+			offset += len(CellSeparator)
 		}
 	}
 

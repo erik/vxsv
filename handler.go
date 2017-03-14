@@ -83,7 +83,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Ch == 'Z':
 		ui.zebraStripe = !ui.zebraStripe
 	case ev.Ch == 'X':
-		for i, _ := range ui.columnOpts {
+		for i := range ui.columnOpts {
 			if globalExpanded {
 				ui.columnOpts[i].display = ColumnExpanded
 			} else {
@@ -92,7 +92,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		}
 		globalExpanded = !globalExpanded
 	case ev.Ch == '?':
-		ui.pushHandler(NewPopup(h.ui, HELP_TEXT))
+		ui.pushHandler(NewPopup(h.ui, HelpText))
 	case ev.Ch == 'r':
 		ui.pushHandler(&HandlerRowSelect{*h, h.ui.offsetY})
 	}
@@ -221,7 +221,7 @@ func (h *HandlerRowSelect) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
 
-	termbox.SetCell(0, 1+h.rowIdx-ui.offsetY, ROW_INDICATOR, termbox.ColorRed|termbox.AttrBold, termbox.ColorWhite)
+	termbox.SetCell(0, 1+h.rowIdx-ui.offsetY, RowIndicator, termbox.ColorRed|termbox.AttrBold, termbox.ColorWhite)
 
 	line := fmt.Sprintf("ROW SELECT (^g quit) [%d of %d]", h.rowIdx, len(ui.filterMatches))
 	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
@@ -276,8 +276,6 @@ func (h *HandlerColumnSelect) Repaint() {
 	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 }
 
-// FIXME: When transitioning out of ColumnSelect mode, we leave a
-// FIXME: column highlighted.
 func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	ui := h.ui
 	colOpt := &ui.columnOpts[h.column]
@@ -459,7 +457,7 @@ func (h *HandlerPopup) Repaint() {
 		[]string{"└─", "─┘"},
 	}
 
-	for i := -1; i <= popupH; i += 1 {
+	for i := -1; i <= popupH; i++ {
 		var border []string
 		var content string
 

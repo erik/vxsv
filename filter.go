@@ -62,20 +62,20 @@ type ColumnFilter struct {
 	colIdx     int
 }
 
-const OP_CHARS = "!=><"
+const OpChars = "!=><"
 
-var CMP_OP_REGEX = regexp.MustCompile(`^(.+?)([!=><]+)(.+)$`)
+var CmpOpRegex = regexp.MustCompile(`^(.+?)([!=><]+)(.+)$`)
 
 // parse a filter string into an instance of the Filter interface
 func (ui *UI) parseFilter(fs string) (Filter, error) {
-	if !strings.ContainsAny(fs, OP_CHARS) {
+	if !strings.ContainsAny(fs, OpChars) {
 		return RowFilter{
 			filter:        fs,
 			caseSensitive: false,
 		}, nil
 	}
 
-	if match := CMP_OP_REGEX.FindStringSubmatch(fs); len(match) > 0 {
+	if match := CmpOpRegex.FindStringSubmatch(fs); len(match) > 0 {
 		filter := ColumnFilter{
 			expression: fs,
 		}
@@ -125,7 +125,7 @@ func (ui *UI) parseFilter(fs string) (Filter, error) {
 		return filter, nil
 	}
 
-	return nil, fmt.Errorf("Filter didn't match expected format: %v", CMP_OP_REGEX)
+	return nil, fmt.Errorf("Filter didn't match expected format: %v", CmpOpRegex)
 }
 
 func (f ColumnFilter) String() string { return f.expression }

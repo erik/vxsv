@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func ReadPsqlTable(reader io.Reader, count int64) (*TabularData, error) {
+func ReadPSQLTable(reader io.Reader, count int64) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Scan()
 
@@ -47,7 +47,7 @@ func ReadPsqlTable(reader io.Reader, count int64) (*TabularData, error) {
 // | foo2 | bar2 | baz2 |
 // +------+------+------+
 // 2 rows in set
-func ReadMySqlTable(reader io.Reader, count int64) (*TabularData, error) {
+func ReadMySQLTable(reader io.Reader, count int64) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 
 	// Skip leading horizontal line
@@ -97,7 +97,7 @@ func parseColumns(columnString string) []Column {
 	}
 
 	// Make sure we skip the leading space in the first column
-	columns[0].Width -= 1
+	columns[0].Width--
 
 	return columns
 }

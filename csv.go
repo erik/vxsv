@@ -15,16 +15,17 @@ func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, e
 	}
 
 	csv.Comma = delimiter
-	if headers, err := csv.Read(); err != nil {
-		return nil, err
-	} else {
+	if headers, err := csv.Read(); err == nil {
 		columns := make([]Column, len(headers))
 		for i, col := range headers {
 			width := clamp(len(col), 1, len(col))
 			columns[i] = Column{Name: col, Width: width}
 			data.Width += width
 		}
+
 		data.Columns = columns
+	} else {
+		return nil, err
 	}
 
 	var i int64
