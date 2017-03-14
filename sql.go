@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func ReadPsqlTable(reader io.Reader) (*TabularData, error) {
+func ReadPsqlTable(reader io.Reader, count int64) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Scan()
 
@@ -18,7 +18,8 @@ func ReadPsqlTable(reader io.Reader) (*TabularData, error) {
 
 	rows := [][]string{}
 
-	for scanner.Scan() {
+	var i int64
+	for i = 0; i < count && scanner.Scan(); i++ {
 		// This is the last line that's printed, e.g. (100 rows)
 		if scanner.Text()[0] == '(' {
 			break
@@ -46,7 +47,7 @@ func ReadPsqlTable(reader io.Reader) (*TabularData, error) {
 // | foo2 | bar2 | baz2 |
 // +------+------+------+
 // 2 rows in set
-func ReadMySqlTable(reader io.Reader) (*TabularData, error) {
+func ReadMySqlTable(reader io.Reader, count int64) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 
 	// Skip leading horizontal line
@@ -60,7 +61,9 @@ func ReadMySqlTable(reader io.Reader) (*TabularData, error) {
 	scanner.Scan()
 
 	rows := [][]string{}
-	for scanner.Scan() {
+
+	var i int64
+	for i = 0; i < count && scanner.Scan(); i++ {
 		row := scanner.Text()
 
 		// last line

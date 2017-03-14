@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
+	"strconv"
 
 	"github.com/docopt/docopt-go"
 )
@@ -11,7 +13,6 @@ import (
 type Column struct {
 	Name  string
 	Width int
-	// TODO: type
 }
 
 type TabularData struct {
@@ -24,7 +25,7 @@ func main() {
 	usage := `view [x] separated values
 
 Usage:
-  vxsv [-tpmxsd DELIMITER] ([-] | [<PATH>])
+  vxsv [-tpmxsd DELIMITER] [-n COUNT] ([-] | [<PATH>])
   vxsv -h | --help
 
 Arguments:
@@ -37,10 +38,12 @@ Options:
   -t --tabs                   use tabs as separator value.
   -p --psql                   parse output of psql cli (used as a pager)
   -m --mysql                  parse output of mysql cli
+  -n --count=<COUNT>          only read <COUNT> records [default: all].
 `
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 
+	var count int64
 	var data *TabularData
 	var err error
 
@@ -57,13 +60,22 @@ Options:
 		reader = io.Reader(file)
 	}
 
+	if countStr, ok := args["--count"].(string); ok {
+		if countStr == "all" {
+			count = math.MaxInt64
+		} else if count, err = strconv.ParseInt(countStr, 10, 64); err != nil {
+			fmt.Printf("Invalid value given for count: %s\n", countStr)
+			os.Exit(1)
+		}
+	}
+
 	if args["--psql"] == true {
-		if data, err = ReadPsqlTable(reader); err != nil {
+		if data, err = ReadPsqlTable(reader, count); err != nil {
 			fmt.Printf("Failed to read PSQL data: %v", err)
 			os.Exit(1)
 		}
 	} else if args["--mysql"] == true {
-		if data, err = ReadMySqlTable(reader); err != nil {
+		if data, err = ReadMySqlTable(reader, count); err != nil {
 			fmt.Printf("Failed to read MySQL data: %v", err)
 			os.Exit(1)
 		}
@@ -79,7 +91,7 @@ Options:
 			}
 		}
 
-		if data, err = ReadCSVFile(reader, delimiter); err != nil {
+		if data, err = ReadCSVFile(reader, delimiter, count); err != nil {
 			fmt.Printf("Failed to read CSV file (do you have the right delimiter?): %v\n", err)
 			os.Exit(1)
 		}

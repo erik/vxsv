@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-func ReadCSVFile(reader io.Reader, delimiter rune) (*TabularData, error) {
+func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, error) {
 	csv := csv.NewReader(reader)
 
 	data := &TabularData{
@@ -27,7 +27,8 @@ func ReadCSVFile(reader io.Reader, delimiter rune) (*TabularData, error) {
 		data.Columns = columns
 	}
 
-	for {
+	var i int64
+	for i = 0; i < count; i++ {
 		record, err := csv.Read()
 
 		if err == io.EOF {
@@ -42,9 +43,9 @@ func ReadCSVFile(reader io.Reader, delimiter rune) (*TabularData, error) {
 
 		data.Rows = append(data.Rows, record)
 
-		for i, col := range record {
-			if len(col) > data.Columns[i].Width {
-				data.Columns[i].Width = len(col)
+		for j, col := range record {
+			if len(col) > data.Columns[j].Width {
+				data.Columns[j].Width = len(col)
 			}
 		}
 	}
