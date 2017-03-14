@@ -1,6 +1,6 @@
 // ui mode specific handlers
 
-package main
+package vxsv
 
 import (
 	"encoding/json"

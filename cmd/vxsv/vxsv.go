@@ -8,18 +8,8 @@ import (
 	"strconv"
 
 	"github.com/docopt/docopt-go"
+	"github.com/erik/vxsv"
 )
-
-type Column struct {
-	Name  string
-	Width int
-}
-
-type TabularData struct {
-	Width   int
-	Columns []Column
-	Rows    [][]string
-}
 
 func main() {
 	usage := `view [x] separated values
@@ -44,7 +34,7 @@ Options:
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 
 	var count int64
-	var data *TabularData
+	var data *vxsv.TabularData
 	var err error
 
 	// default to stdin if we don't have an explicit file passed in
@@ -70,12 +60,12 @@ Options:
 	}
 
 	if args["--psql"] == true {
-		if data, err = ReadPsqlTable(reader, count); err != nil {
+		if data, err = vxsv.ReadPsqlTable(reader, count); err != nil {
 			fmt.Printf("Failed to read PSQL data: %v", err)
 			os.Exit(1)
 		}
 	} else if args["--mysql"] == true {
-		if data, err = ReadMySqlTable(reader, count); err != nil {
+		if data, err = vxsv.ReadMySqlTable(reader, count); err != nil {
 			fmt.Printf("Failed to read MySQL data: %v", err)
 			os.Exit(1)
 		}
@@ -91,13 +81,13 @@ Options:
 			}
 		}
 
-		if data, err = ReadCSVFile(reader, delimiter, count); err != nil {
+		if data, err = vxsv.ReadCSVFile(reader, delimiter, count); err != nil {
 			fmt.Printf("Failed to read CSV file (do you have the right delimiter?): %v\n", err)
 			os.Exit(1)
 		}
 	}
 
-	ui := NewUi(data)
+	ui := vxsv.NewUi(data)
 	if err := ui.Init(); err != nil {
 		fmt.Printf("Failed to initialize terminal UI: %v\n", err)
 		os.Exit(1)

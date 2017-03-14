@@ -1,4 +1,4 @@
-package main
+package vxsv
 
 import (
 	"fmt"
@@ -63,6 +63,17 @@ ROW SELECT MODE
   [ENTER]         Pop open expanded row dialog.
 
 `
+
+type Column struct {
+	Name  string
+	Width int
+}
+
+type TabularData struct {
+	Width   int
+	Columns []Column
+	Rows    [][]string
+}
 
 type ColumnDisplay int
 
