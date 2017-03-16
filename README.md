@@ -9,6 +9,8 @@ go get -u github.com/erik/vxsv/cmd/vxsv
 vxsv --help
 ```
 
+Requires Go >= 1.8 to build.
+
 **WARNING**: Pre alpha, this is going to be buggy. 
 
 [![asciicast](https://asciinema.org/a/7cg3r5ukgjh26f7gubw5emy8r.png)](https://asciinema.org/a/7cg3r5ukgjh26f7gubw5emy8r)
