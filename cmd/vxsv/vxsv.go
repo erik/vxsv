@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	usage := `view [x] separated values
+	usage := fmt.Sprintf(`view [x] separated values
 
 Usage:
   vxsv [-tpmxsd DELIMITER] [-n COUNT] ([-] | [<PATH>])
@@ -29,7 +29,8 @@ Options:
   -p --psql                   parse output of psql cli (used as a pager)
   -m --mysql                  parse output of mysql cli
   -n --count=<COUNT>          only read <COUNT> records [default: all].
-`
+
+%s`, vxsv.HelpText)
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 

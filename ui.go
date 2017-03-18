@@ -56,11 +56,11 @@ FILTER MODE
   Filter strings can take two forms:
 
     1. Column filter: "column_name CMP value"
-       - CMP is one of (==, !=, <, <=, >, >=)
-       - Display rows where the given column's value for the
+       * CMP is one of (==, !=, <, <=, >, >=)
+       * Display rows where the given column's value for the
          row makes the comparison evaluate to true.
     2. Row filter: "filter_string"
-       - Display rows where any column in the row matches the
+       * Display rows where any column in the row matches the
          filter string.
 
   [ESC], Ctrl g   clear filter and return to ** DEFAULT MODE **
@@ -71,7 +71,6 @@ ROW SELECT MODE
 
   <arrow keys>    select row
   [ENTER]         Pop open expanded row dialog.
-
 `
 
 type Column struct {
