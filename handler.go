@@ -73,7 +73,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		ui.offsetY = 0
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
-	case ev.Ch == 'C':
+	case ev.Ch == 'C', ev.Ch == 'c':
 		ui.pushHandler(NewColumnSelect(h.ui))
 		ui.offsetX = 0
 	case ev.Ch == 'G':
@@ -93,7 +93,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		globalExpanded = !globalExpanded
 	case ev.Ch == '?':
 		ui.pushHandler(NewPopup(h.ui, HelpText))
-	case ev.Ch == 'r':
+	case ev.Ch == 'R', ev.Ch == 'r':
 		ui.pushHandler(&HandlerRowSelect{*h, h.ui.offsetY})
 	}
 }
