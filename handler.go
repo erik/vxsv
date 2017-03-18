@@ -83,11 +83,11 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Ch == 'Z':
 		ui.zebraStripe = !ui.zebraStripe
 	case ev.Ch == 'X':
-		for i := range ui.columnOpts {
+		for _, col := range ui.columns {
 			if globalExpanded {
-				ui.columnOpts[i].display = ColumnExpanded
+				col.Display = ColumnExpanded
 			} else {
-				ui.columnOpts[i].display = ColumnDefault
+				col.Display = ColumnDefault
 			}
 		}
 		globalExpanded = !globalExpanded
@@ -186,13 +186,13 @@ func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 			str := row[i]
 
 			if v, err := strconv.ParseInt(str, 10, 64); err == nil {
-				jsonObj[col] = v
+				jsonObj[col.Name] = v
 			} else if v, err := strconv.ParseFloat(str, 64); err == nil {
-				jsonObj[col] = v
+				jsonObj[col.Name] = v
 			} else if v, err := strconv.ParseBool(str); err == nil {
-				jsonObj[col] = v
+				jsonObj[col.Name] = v
 			} else {
-				jsonObj[col] = str
+				jsonObj[col.Name] = str
 			}
 
 		}
@@ -244,11 +244,11 @@ func NewColumnSelect(ui *UI) *HandlerColumnSelect {
 
 // TODO: also adjust x offset
 func (h *HandlerColumnSelect) selectColumn(idx int) {
-	h.ui.columnOpts[h.column].highlight = false
+	h.ui.columns[h.column].Highlight = false
 	h.column = idx
 
 	if h.column >= 0 {
-		h.ui.columnOpts[h.column].highlight = true
+		h.ui.columns[h.column].Highlight = true
 	}
 }
 
@@ -272,13 +272,13 @@ func (h *HandlerColumnSelect) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
 
-	line := fmt.Sprintf("COLUMN SELECT (^g quit) [%s] %d", ui.columns[h.column], h.column)
+	line := fmt.Sprintf("COLUMN SELECT (^g quit) [%s] %d", ui.columns[h.column].Name, h.column)
 	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
 }
 
 func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	ui := h.ui
-	colOpt := &ui.columnOpts[h.column]
+	col := &ui.columns[h.column]
 
 	switch {
 	case ev.Key == termbox.KeyCtrlA:
@@ -302,16 +302,16 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	case ev.Ch == 'C':
 		h.selectColumn(0)
 	case ev.Ch == 'w':
-		colOpt.toggleDisplay(ColumnCollapsed)
+		col.toggleDisplay(ColumnCollapsed)
 	case ev.Ch == 'x':
-		colOpt.toggleDisplay(ColumnExpanded)
+		col.toggleDisplay(ColumnExpanded)
 	case ev.Ch == 'a':
-		colOpt.toggleDisplay(ColumnAligned)
+		col.toggleDisplay(ColumnAligned)
 	case ev.Ch == '.':
-		colOpt.pinned = !colOpt.pinned
+		col.Pinned = !col.Pinned
 
-		if colOpt.pinned {
-			colOpt.display = ColumnDefault
+		if col.Pinned {
+			col.Display = ColumnDefault
 		}
 	case ev.Ch == 's':
 		var (
@@ -386,7 +386,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
   p90: %15.4f      p25:    %15.4f
   p95: %15.4f      p50:    %15.4f
   p99: %15.4f      p75:    %15.4f`,
-			ui.columns[h.column], len(ui.filterMatches), len(ui.rows), len(data),
+			ui.columns[h.column].Name, len(ui.filterMatches), len(ui.rows), len(data),
 			min, mean, max, median, sum, mode, variance, stdev,
 			p90, quartiles.Q1, p95, quartiles.Q2, p99, quartiles.Q3)
 

@@ -88,7 +88,7 @@ func (ui *UI) parseFilter(fs string) (Filter, error) {
 
 		filter.colIdx = -1
 		for i, col := range ui.columns {
-			if col == column {
+			if col.Name == column {
 				filter.colIdx = i
 				break
 			}

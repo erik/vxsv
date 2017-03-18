@@ -76,6 +76,11 @@ ROW SELECT MODE
 type Column struct {
 	Name  string
 	Width int
+
+	// Display options
+	Display   ColumnDisplay
+	Pinned    bool
+	Highlight bool
 }
 
 type TabularData struct {
@@ -92,31 +97,24 @@ const (
 	ColumnAligned
 )
 
-type columnOptions struct {
-	display   ColumnDisplay
-	pinned    bool
-	highlight bool
-	width     int
-}
-
-func (c *columnOptions) toggleDisplay(mode ColumnDisplay) {
-	if c.display == mode {
-		c.display = ColumnDefault
+func (c *Column) toggleDisplay(mode ColumnDisplay) {
+	if c.Display == mode {
+		c.Display = ColumnDefault
 	} else {
-		c.display = mode
+		c.Display = mode
 	}
 }
 
-func (c columnOptions) displayWidth() int {
-	switch c.display {
+func (c Column) displayWidth() int {
+	switch c.Display {
 	case ColumnAligned:
-		return clamp(c.width, 16, c.width)
+		return clamp(c.Width, 16, c.Width)
 	case ColumnCollapsed:
 		return 1
 	case ColumnExpanded:
-		return c.width
+		return c.Width
 	case ColumnDefault:
-		return clamp(c.width, 1, MaxCellWidth)
+		return clamp(c.Width, 1, MaxCellWidth)
 	}
 
 	panic("TODO: this is a bug")
@@ -129,8 +127,7 @@ type UI struct {
 	filter           Filter
 	filterMatches    []int
 	zebraStripe      bool
-	columnOpts       []columnOptions
-	columns          []string
+	columns          []Column
 	rows             [][]string
 }
 
@@ -181,18 +178,18 @@ func (ui *UI) writeModeLine(left, right string) {
 }
 
 func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.Attribute) int {
-	colOpts := ui.columnOpts[index]
+	col := ui.columns[index]
 
-	if colOpts.highlight {
+	if col.Highlight {
 		fg = HiliteFg
 		bg = HiliteBg
 	}
 
 	formatted := cell
 
-	switch colOpts.display {
+	switch col.Display {
 	case ColumnDefault:
-		width := clamp(colOpts.width, 0, MaxCellWidth)
+		width := clamp(col.Width, 0, MaxCellWidth)
 
 		if len(formatted) > width {
 			formatted = fmt.Sprintf("%-*s…", width-1, formatted[:width-1])
@@ -200,13 +197,13 @@ func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.A
 			formatted = fmt.Sprintf("%-*s", width, formatted)
 		}
 	case ColumnExpanded:
-		if len(formatted) < colOpts.width {
-			formatted = fmt.Sprintf("%-*s", colOpts.width, formatted)
+		if len(formatted) < col.Width {
+			formatted = fmt.Sprintf("%-*s", col.Width, formatted)
 		}
 	case ColumnCollapsed:
 		formatted = "…"
 	case ColumnAligned:
-		width := clamp(colOpts.width, 16, MaxCellWidth)
+		width := clamp(col.Width, 16, MaxCellWidth)
 
 		if val, err := strconv.ParseFloat(cell, 64); err == nil {
 			formatted = fmt.Sprintf("%*.4f", width, val)
@@ -230,9 +227,9 @@ func (ui *UI) writePinned(y int, fg, bg termbox.Attribute, row []string) int {
 	pinnedBounds := 0
 
 	for i, cell := range row {
-		colOpts := ui.columnOpts[i]
+		col := ui.columns[i]
 
-		if colOpts.pinned {
+		if col.Pinned {
 			pinnedBounds = ui.writeCell(cell, pinnedBounds, y, i, -1, fg, bg)
 		}
 	}
@@ -244,14 +241,17 @@ func (ui *UI) writeColumns(x, y int) {
 	fg := termbox.ColorBlack | termbox.AttrBold
 	bg := termbox.ColorWhite
 
-	pinBound := ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, ui.columns)
+	colNames := make([]string, len(ui.columns))
+	for i, col := range ui.columns {
+		colNames[i] = col.Name
+	}
+
+	pinBound := ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, colNames)
 	x += pinBound
 
 	for i, col := range ui.columns {
-		colOpts := ui.columnOpts[i]
-
-		if !colOpts.pinned {
-			x = ui.writeCell(col, x, y, i, pinBound, fg, bg)
+		if !col.Pinned {
+			x = ui.writeCell(col.Name, x, y, i, pinBound, fg, bg)
 		}
 	}
 }
@@ -266,32 +266,24 @@ func (ui *UI) writeRow(x, y int, row []string) {
 	pinBound := ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
 	x += pinBound
 
-	for i := range ui.columns {
-		colOpts := ui.columnOpts[i]
-
-		if !colOpts.pinned {
+	for i, col := range ui.columns {
+		if !col.Pinned {
 			x = ui.writeCell(row[i], x, y, i, pinBound, fg, termbox.ColorDefault)
 		}
 	}
 }
 
 func NewUI(data *TabularData) *UI {
-	colOpts := make([]columnOptions, len(data.Columns))
-	columns := make([]string, len(data.Columns))
 	filterMatches := make([]int, len(data.Rows))
 
 	for i, col := range data.Columns {
-		columns[i] = col.Name
-		colOpts[i] = columnOptions{
-			display:   ColumnDefault,
-			pinned:    false,
-			highlight: false,
-			width:     col.Width,
-		}
+		col.Display = ColumnDefault
+		col.Pinned = false
+		col.Highlight = false
 
 		// Last column should open expanded
 		if i == len(data.Columns)-1 {
-			colOpts[i].display = ColumnExpanded
+			col.Display = ColumnExpanded
 		}
 	}
 
@@ -302,9 +294,8 @@ func NewUI(data *TabularData) *UI {
 	ui := &UI{
 		offsetX:       0,
 		offsetY:       0,
-		columnOpts:    colOpts,
 		rows:          data.Rows,
-		columns:       columns,
+		columns:       data.Columns,
 		zebraStripe:   false,
 		filter:        EmptyFilter{},
 		filterMatches: filterMatches,
@@ -401,9 +392,9 @@ func (ui *UI) viewSize() (int, int) {
 }
 
 func (ui *UI) pinnedWidth() (width int) {
-	for _, colOpt := range ui.columnOpts {
-		if colOpt.pinned {
-			width += colOpt.displayWidth()
+	for _, col := range ui.columns {
+		if col.Pinned {
+			width += col.displayWidth()
 			width += len(CellSeparator)
 		}
 	}
@@ -414,20 +405,18 @@ func (ui *UI) pinnedWidth() (width int) {
 func (ui *UI) columnOffset(colIdx int) (offset int, width int) {
 	offset = 0
 
-	for i := range ui.columns {
-		colOpts := ui.columnOpts[i]
-
+	for i, col := range ui.columns {
 		// Pinned columns should always be visible
 		if i == colIdx {
-			if !colOpts.pinned {
+			if !col.Pinned {
 				break
 			}
 
-			return 0, colOpts.width
+			return 0, col.Width
 		}
 
-		if !colOpts.pinned {
-			width = colOpts.displayWidth()
+		if !col.Pinned {
+			width = col.displayWidth()
 			offset += width
 			offset += len(CellSeparator)
 		}
@@ -445,8 +434,8 @@ var globalExpanded = false
 
 // Find the first visually displayed column
 func (ui *UI) findFirstColumn() int {
-	for i, col := range ui.columnOpts {
-		if col.pinned {
+	for i, col := range ui.columns {
+		if col.Pinned {
 			return i
 		}
 	}
@@ -456,11 +445,11 @@ func (ui *UI) findFirstColumn() int {
 }
 
 func (ui *UI) findNextColumn(current, direction int) int {
-	isPinned := ui.columnOpts[current].pinned
+	isPinned := ui.columns[current].Pinned
 
 	// if pinned, find the next pinned col, or vice versa for unpinned
 	for i := current + direction; i >= 0 && i < len(ui.columns); i += direction {
-		if ui.columnOpts[i].pinned == isPinned {
+		if ui.columns[i].Pinned == isPinned {
 			return i
 		}
 	}
@@ -476,7 +465,7 @@ func (ui *UI) findNextColumn(current, direction int) int {
 		i = len(ui.columns) - 1
 	}
 	for ; i >= 0 && i < len(ui.columns); i += direction {
-		if (isPinned && !ui.columnOpts[i].pinned) || (!isPinned && ui.columnOpts[i].pinned) {
+		if (isPinned && !ui.columns[i].Pinned) || (!isPinned && ui.columns[i].Pinned) {
 			return i
 		}
 	}
