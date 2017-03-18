@@ -10,8 +10,7 @@ func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, e
 	csv := csv.NewReader(reader)
 
 	data := &TabularData{
-		Width: 0,
-		Rows:  make([][]string, 0, 100),
+		Rows: make([][]string, 0, 100),
 	}
 
 	csv.Comma = delimiter
@@ -20,7 +19,6 @@ func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, e
 		for i, col := range headers {
 			width := clamp(len(col), 1, len(col))
 			columns[i] = Column{Name: col, Width: width}
-			data.Width += width
 		}
 
 		data.Columns = columns

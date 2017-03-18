@@ -79,7 +79,6 @@ type Column struct {
 }
 
 type TabularData struct {
-	Width   int
 	Columns []Column
 	Rows    [][]string
 }
@@ -133,7 +132,6 @@ type UI struct {
 	columnOpts       []columnOptions
 	columns          []string
 	rows             [][]string
-	width            int
 }
 
 // It is so dumb that go doesn't have this
@@ -307,7 +305,6 @@ func NewUI(data *TabularData) *UI {
 		columnOpts:    colOpts,
 		rows:          data.Rows,
 		columns:       columns,
-		width:         data.Width,
 		zebraStripe:   false,
 		filter:        EmptyFilter{},
 		filterMatches: filterMatches,
