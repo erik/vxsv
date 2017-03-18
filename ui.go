@@ -53,6 +53,16 @@ COLUMN SELECT MODE
 
 FILTER MODE
 
+  Filter strings can take two forms:
+
+    1. Column filter: "column_name CMP value"
+       - CMP is one of (==, !=, <, <=, >, >=)
+       - Display rows where the given column's value for the
+         row makes the comparison evaluate to true.
+    2. Row filter: "filter_string"
+       - Display rows where any column in the row matches the
+         filter string.
+
   [ESC], Ctrl g   clear filter and return to ** DEFAULT MODE **
   Ctrl w          clear filter
   [ENTER]         apply filter and return to default mode
