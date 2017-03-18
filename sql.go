@@ -6,6 +6,13 @@ import (
 	"strings"
 )
 
+// Parses Postgres output format:
+//
+//  colA | colB | colC
+// ------+------+-----
+//  foo  | bar  | baz
+//  foo2 | bar2 | baz2
+// (2 rows)
 func ReadPSQLTable(reader io.Reader, count int64) (*TabularData, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Scan()
