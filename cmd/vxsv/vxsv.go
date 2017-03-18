@@ -23,7 +23,6 @@ Arguments:
 
 Options:
   -h --help                   show this help message and exit.
-  -s --stream                 handle streaming data.
   -d --delimiter=<DELIMITER>  separator for values [default: ,].
   -t --tabs                   use tabs as separator value.
   -p --psql                   parse output of psql cli (used as a pager)
