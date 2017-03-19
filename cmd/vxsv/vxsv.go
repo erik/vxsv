@@ -15,19 +15,19 @@ func main() {
 	usage := fmt.Sprintf(`view [x] separated values
 
 Usage:
-  vxsv [-tpmxsd DELIMITER] [-n COUNT] ([-] | [<PATH>])
+  vxsv [-tpm] [--delimiter=DELIM] [--count=N] ([-] | [<PATH>])
   vxsv -h | --help
 
 Arguments:
-  PATH  file to load [default: -]
+  PATH     file to load [default: stdin]
 
 Options:
-  -h --help                   show this help message and exit.
-  -d --delimiter=<DELIMITER>  separator for values [default: ,].
-  -t --tabs                   use tabs as separator value.
-  -p --psql                   parse output of psql cli (used as a pager)
-  -m --mysql                  parse output of mysql cli
-  -n --count=<COUNT>          only read <COUNT> records [default: all].
+  -h --help                 show this help message and exit.
+  -d --delimiter=<DELIM>    separator for values [default: ,].
+  -t --tabs                 use tabs as separator value.
+  -p --psql                 parse output of psql cli (used as a pager)
+  -m --mysql                parse output of mysql cli
+  -n --count=<N>            only read N records [default: all].
 
 %s`, vxsv.HelpText)
 
