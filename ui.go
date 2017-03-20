@@ -163,6 +163,7 @@ func writeString(x, y int, fg, bg termbox.Attribute, msg string) int {
 // Fill entire line of screen
 func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	width, _ := termbox.Size()
+
 	for _, c := range line {
 		termbox.SetCell(x, y, c, fg, bg)
 		x++
@@ -172,9 +173,47 @@ func writeLine(x, y int, fg, bg termbox.Attribute, line string) {
 	}
 }
 
-// TODO: Write me
-func (ui *UI) writeModeLine(left, right string) {
+func (ui *UI) writeModeLine(mode string, left []string) {
+	width, height := termbox.Size()
 
+	// Clear the line
+	for i := 0; i < width; i++ {
+		termbox.SetCell(i, height-1, ' ', termbox.ColorDefault, termbox.ColorDefault)
+	}
+
+	var x int = 0
+	for _, ch := range mode {
+		termbox.SetCell(x, height-1, ch, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault)
+		x++
+	}
+
+	termbox.SetCell(x, height-1, ' ', termbox.ColorDefault, termbox.ColorDefault)
+	x++
+
+	for _, str := range left {
+		for _, ch := range str {
+			termbox.SetCell(x, height-1, ch, termbox.ColorDefault, termbox.ColorDefault)
+			x++
+		}
+
+		x++
+	}
+
+	first := ui.offsetY
+	last := clamp(ui.offsetY+height, 0, len(ui.filterMatches))
+	total := len(ui.filterMatches)
+	filterString := ""
+
+	if _, ok := ui.filter.(EmptyFilter); !ok {
+		filterString = fmt.Sprintf("filter:\"%s\" :: ", ui.filter.String())
+	}
+
+	right := fmt.Sprintf("%srows %d-%d of %d", filterString, first, last, total)
+	x = len(right)
+	for _, ch := range right {
+		termbox.SetCell(width-x, height-1, ch, termbox.ColorGreen|termbox.AttrBold, termbox.ColorBlack)
+		x--
+	}
 }
 
 func (ui *UI) writeCell(cell string, x, y, index, pinBound int, fg, bg termbox.Attribute) int {

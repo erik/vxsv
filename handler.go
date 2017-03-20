@@ -25,19 +25,7 @@ type HandlerDefault struct {
 
 func (h *HandlerDefault) Repaint() {
 	ui := h.ui
-	_, height := termbox.Size()
-
-	first := ui.offsetY
-	last := clamp(ui.offsetY+height, 0, len(ui.filterMatches))
-	total := len(ui.filterMatches) - 1
-	filter := ""
-
-	if _, ok := ui.filter.(EmptyFilter); !ok {
-		filter = fmt.Sprintf("[filter: \"%s\"] ", ui.filter.String())
-	}
-
-	line := fmt.Sprintf("%s[rows %d-%d of %d] :%d, %d", filter, first, last, total, ui.offsetX, ui.offsetY)
-	writeLine(0, height-1, termbox.ColorDefault, termbox.ColorDefault, line)
+	ui.writeModeLine(":", []string{})
 }
 
 func (h *HandlerDefault) HandleKey(ev termbox.Event) {
@@ -107,10 +95,8 @@ func (h *HandlerFilter) Repaint() {
 	ui := h.ui
 	_, height := termbox.Size()
 
-	line := fmt.Sprintf("FILTER [%d matches]: %s", len(ui.filterMatches), h.filter)
-	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
-	termbox.SetCursor(len(line), height-1)
-
+	ui.writeModeLine("Filter", []string{h.filter})
+	termbox.SetCursor(len("filter")+1+len(h.filter), height-1)
 }
 
 func (h *HandlerFilter) HandleKey(ev termbox.Event) {
@@ -219,12 +205,9 @@ func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 
 func (h *HandlerRowSelect) Repaint() {
 	ui := h.ui
-	_, height := termbox.Size()
 
 	termbox.SetCell(0, 1+h.rowIdx-ui.offsetY, RowIndicator, termbox.ColorRed|termbox.AttrBold, termbox.ColorWhite)
-
-	line := fmt.Sprintf("ROW SELECT (^g quit) [%d of %d]", h.rowIdx, len(ui.filterMatches))
-	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
+	ui.writeModeLine("Row Select", []string{strconv.Itoa(h.rowIdx)})
 }
 
 type HandlerColumnSelect struct {
@@ -270,10 +253,9 @@ func (h *HandlerColumnSelect) rowSorter(i, j int) bool {
 
 func (h *HandlerColumnSelect) Repaint() {
 	ui := h.ui
-	_, height := termbox.Size()
 
-	line := fmt.Sprintf("COLUMN SELECT (^g quit) [%s] %d", ui.columns[h.column].Name, h.column)
-	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
+	col := fmt.Sprintf("[%s]", ui.columns[h.column].Name)
+	ui.writeModeLine("Column Select", []string{col})
 }
 
 func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
@@ -483,9 +465,7 @@ func (h *HandlerPopup) Repaint() {
 		writeString(x, y+i, termbox.ColorWhite, termbox.ColorDefault, line)
 	}
 
-	line := "POPUP (^g quit)"
-	writeLine(0, height-1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, line)
-
+	h.ui.writeModeLine("Modal", []string{})
 }
 
 func (h *HandlerPopup) HandleKey(ev termbox.Event) {
