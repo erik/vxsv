@@ -15,11 +15,12 @@ func main() {
 	usage := fmt.Sprintf(`view [x] separated values
 
 Usage:
-  vxsv [-tpmH] [--delimiter=DELIM] [--count=N] ([-] | [<PATH>])
+  vxsv [--psql | --mysql | --delimiter=DELIM | --tabs]
+       [--no-headers] [--count=N] [PATH | -]
   vxsv -h | --help
 
 Arguments:
-  PATH     file to load [default: stdin]
+  PATH     file to load [defaults to stdin]
 
 Options:
   -h --help                 show this help message and exit.
@@ -29,7 +30,7 @@ Options:
   -H --no-headers           don't read headers from first row (for separated values)
   -d --delimiter=<DELIM>    separator for values [default: ,].
   -t --tabs                 use tabs as separator value.
-%s`, vxsv.HelpText)
+`)
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 
@@ -40,8 +41,7 @@ Options:
 	// default to stdin if we don't have an explicit file passed in
 	reader := io.Reader(os.Stdin)
 
-	if args["<PATH>"] != nil {
-		fileName, _ := args["<PATH>"].(string)
+	if fileName, ok := args["PATH"].(string); ok && fileName != "-" {
 		file, err := os.Open(fileName)
 		if err != nil {
 			panic("Failed to open file")
