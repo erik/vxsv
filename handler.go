@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"os/exec"
 	"sort"
@@ -163,12 +164,20 @@ func (h *HandlerShell) applyCommand() {
 
 	in, err := cmd.StdinPipe()
 	if err != nil {
-		panic("FIXME: can't open stdin")
+		// FIXME: more context
+		panic(err)
 	}
 
 	out, err := cmd.StdoutPipe()
 	if err != nil {
-		panic("FIXME: can't open stdout")
+		// FIXME: more context
+		panic(err)
+	}
+
+	errOut, err := cmd.StderrPipe()
+	if err != nil {
+		// FIXME: more context
+		panic(err)
 	}
 
 	go func() {
@@ -186,7 +195,10 @@ func (h *HandlerShell) applyCommand() {
 	scanner := bufio.NewScanner(out)
 	for i := 0; i < len(h.ui.rows); i++ {
 		if !scanner.Scan() {
-			h.ui.pushHandler(NewPopup(h.ui, "Process exited too early!"))
+			output, _ := ioutil.ReadAll(errOut)
+
+			msg := fmt.Sprintf("Process exited too early!\n\n%s", output)
+			h.ui.pushHandler(NewPopup(h.ui, msg))
 			break
 		}
 
