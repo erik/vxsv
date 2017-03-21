@@ -102,50 +102,53 @@ func (h *HandlerFilter) Repaint() {
 	termbox.SetCursor(len("filter")+1+len(h.filter), height-1)
 }
 
+func handlePromptKey(ev termbox.Event, str *string) (consumed bool) {
+	if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace || ev.Key == termbox.KeyBackspace2 {
+		if sz := len(*str); sz > 0 {
+			*str = (*str)[:sz-1]
+		}
+	} else if ev.Key == termbox.KeyCtrlW || ev.Key == termbox.KeyCtrlU {
+		*str = ""
+	} else if ev.Key == termbox.KeySpace {
+		*str += " "
+	} else if ev.Ch != 0 {
+		*str += string(ev.Ch)
+	} else {
+		// Unknown key press
+		return false
+	}
+
+	return true
+}
+
 func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 	ui := h.ui
 
-	// Ch == 0 implies this was a special key
-	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
-		if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
-			ui.popHandler()
-
-			ui.filter = EmptyFilter{}
-			ui.filterRows(false)
-		} else if ev.Key == termbox.KeyEnter {
-			if h.filter == "" {
-				ui.filter = EmptyFilter{}
-			} else if filter, err := ui.parseFilter(h.filter); err == nil {
-				ui.filter = filter
-			} else {
-				errString := fmt.Sprintf("There was an error in your filter:"+
-					"\n\n%v\n\n%s", err, h.filter)
-				ui.pushHandler(NewPopup(ui, errString))
-				return
-			}
-			ui.filterRows(false)
-			ui.popHandler()
-		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
-			ev.Key == termbox.KeyBackspace2 {
-			if sz := len(h.filter); sz > 0 {
-				h.filter = h.filter[:sz-1]
-			}
-		} else if ev.Key == termbox.KeyCtrlW || ev.Key == termbox.KeyCtrlU {
-			h.filter = ""
-			ui.filterRows(false)
-		} else {
-			// Fallback to default handling for arrows etc
-			// FIXME: is this really the best way to do this in go?
-			def := &HandlerDefault{h.ui}
-			def.HandleKey(ev)
-		}
+	if handlePromptKey(ev, &h.filter) {
 		return
-	}
+	} else if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
+		ui.popHandler()
 
-	if ev.Key == termbox.KeySpace {
-		h.filter += " "
+		ui.filter = EmptyFilter{}
+		ui.filterRows(false)
+	} else if ev.Key == termbox.KeyEnter {
+		if h.filter == "" {
+			ui.filter = EmptyFilter{}
+		} else if filter, err := ui.parseFilter(h.filter); err == nil {
+			ui.filter = filter
+		} else {
+			errString := fmt.Sprintf("There was an error in your filter:"+
+				"\n\n%v\n\n%s", err, h.filter)
+			ui.pushHandler(NewPopup(ui, errString))
+			return
+		}
+		ui.filterRows(false)
+		ui.popHandler()
 	} else {
-		h.filter += string(ev.Ch)
+		// Fallback to default handling for arrows etc
+		// FIXME: is this really the best way to do this in go?
+		def := &HandlerDefault{h.ui}
+		def.HandleKey(ev)
 	}
 }
 
@@ -199,35 +202,25 @@ func (h *HandlerShell) applyCommand() {
 }
 
 func (h *HandlerShell) HandleKey(ev termbox.Event) {
-	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
-		if ev.Key == termbox.KeyEnter {
-			trimmed := strings.TrimSpace(h.command)
-			h.ui.popHandler()
+	if handlePromptKey(ev, &h.command) {
+		return
+	} else if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
+		h.ui.popHandler()
+	} else if ev.Key == termbox.KeyEnter {
+		trimmed := strings.TrimSpace(h.command)
+		h.ui.popHandler()
 
-			if len(trimmed) > 0 {
-				h.applyCommand()
-			}
-		} else if ev.Key == termbox.KeyEsc {
-			h.ui.popHandler()
-		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
-			ev.Key == termbox.KeyBackspace2 {
-			if sz := len(h.command); sz > 0 {
-				h.command = h.command[:sz-1]
-			}
-		} else if ev.Key == termbox.KeyCtrlW || ev.Key == termbox.KeyCtrlU {
-			h.command = ""
-		}
-	} else {
-		if ev.Key == termbox.KeySpace {
-			h.command += " "
-		} else {
-			h.command += string(ev.Ch)
+		if len(trimmed) > 0 {
+			h.applyCommand()
 		}
 	}
 }
 
 func (h *HandlerShell) Repaint() {
+	_, height := termbox.Size()
+
 	h.ui.writeModeLine("Run shell", []string{h.command})
+	termbox.SetCursor(len("run shell")+1+len(h.command), height-1)
 }
 
 type HandlerRowSelect struct {
