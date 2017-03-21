@@ -26,15 +26,15 @@ Options:
   -h --help                 show this help message and exit.
   -p --psql                 parse output of psql cli (used as a pager)
   -m --mysql                parse output of mysql cli
-  -n --count=<N>            only read N records [default: all].
+  -n --count=N              only read N records.
   -H --no-headers           don't read headers from first row (for separated values)
-  -d --delimiter=<DELIM>    separator for values [default: ,].
+  -d --delimiter=DELIM      separator for values [default: ,].
   -t --tabs                 use tabs as separator value.
 `)
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
 
-	var count int64
+	var count int64 = math.MaxInt64
 	var data *vxsv.TabularData
 	var err error
 
@@ -44,16 +44,15 @@ Options:
 	if fileName, ok := args["PATH"].(string); ok && fileName != "-" {
 		file, err := os.Open(fileName)
 		if err != nil {
-			panic("Failed to open file")
+			fmt.Printf("Failed to open \"%s\": %v", fileName, err)
+			os.Exit(1)
 		}
 
 		reader = io.Reader(file)
 	}
 
 	if countStr, ok := args["--count"].(string); ok {
-		if countStr == "all" {
-			count = math.MaxInt64
-		} else if count, err = strconv.ParseInt(countStr, 10, 64); err != nil {
+		if count, err = strconv.ParseInt(countStr, 10, 64); err != nil {
 			fmt.Printf("Invalid value given for count: %s\n", countStr)
 			os.Exit(1)
 		}
@@ -73,12 +72,8 @@ Options:
 		delimiter := ','
 		if args["--tabs"] == true {
 			delimiter = '\t'
-		} else if args["--delimiter"] != nil {
-			if delimiterStr, ok := args["--delimiter"].(string); !ok {
-				panic("Couldn't grab delimiter")
-			} else {
-				delimiter = []rune(delimiterStr)[0]
-			}
+		} else if delimStr, ok := args["--delimiter"].(string); ok {
+			delimiter = []rune(delimStr)[0]
 		}
 
 		readHeaders := args["--no-headers"] == false
