@@ -3,9 +3,12 @@
 package vxsv
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
+	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -144,9 +147,87 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 	} else {
 		h.filter += string(ev.Ch)
 	}
+}
 
-	ui.offsetY = 0
-	ui.filterRows(true)
+type HandlerShell struct {
+	HandlerDefault
+	colIdx  int
+	command string
+}
+
+func (h *HandlerShell) applyCommand() {
+	cmd := exec.Command("sh", "-c", h.command)
+
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		panic("FIXME: can't open stdin")
+	}
+
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		panic("FIXME: can't open stdout")
+	}
+
+	go func() {
+		defer in.Close()
+
+		for _, row := range h.ui.rows {
+			io.WriteString(in, row[h.colIdx]+"\n")
+		}
+	}()
+
+	if err := cmd.Start(); err != nil {
+		panic(err)
+	}
+
+	scanner := bufio.NewScanner(out)
+	for i := 0; i < len(h.ui.rows); i++ {
+		if !scanner.Scan() {
+			h.ui.pushHandler(NewPopup(h.ui, "Process exited too early!"))
+			break
+		}
+
+		if err := scanner.Err(); err != nil {
+			errString := fmt.Sprintf("There was an error running your command:"+
+				"\n\n:%v\n", err)
+			h.ui.pushHandler(NewPopup(h.ui, errString))
+		}
+
+		// TODO: Don't modify original copy of data
+		h.ui.rows[i][h.colIdx] = scanner.Text()
+	}
+}
+
+func (h *HandlerShell) HandleKey(ev termbox.Event) {
+	if ev.Ch == 0 && ev.Key != termbox.KeySpace {
+		if ev.Key == termbox.KeyEnter {
+			trimmed := strings.TrimSpace(h.command)
+			h.ui.popHandler()
+
+			if len(trimmed) > 0 {
+				h.applyCommand()
+			}
+		} else if ev.Key == termbox.KeyEsc {
+			h.ui.popHandler()
+		} else if ev.Key == termbox.KeyDelete || ev.Key == termbox.KeyBackspace ||
+			ev.Key == termbox.KeyBackspace2 {
+			if sz := len(h.command); sz > 0 {
+				h.command = h.command[:sz-1]
+			}
+		} else if ev.Key == termbox.KeyCtrlW || ev.Key == termbox.KeyCtrlU {
+			h.command = ""
+		}
+	} else {
+		if ev.Key == termbox.KeySpace {
+			h.command += " "
+		} else {
+			h.command += string(ev.Ch)
+		}
+	}
+}
+
+func (h *HandlerShell) Repaint() {
+	h.ui.writeModeLine("Run shell", []string{h.command})
 }
 
 type HandlerRowSelect struct {
@@ -295,6 +376,8 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		if col.Pinned {
 			col.Display = ColumnDefault
 		}
+	case ev.Ch == '|':
+		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, ""})
 	case ev.Ch == 's':
 		var (
 			min, max, stdev    float64

@@ -81,6 +81,8 @@ type Column struct {
 	Display   ColumnDisplay
 	Pinned    bool
 	Highlight bool
+
+	Modified bool
 }
 
 type TabularData struct {
@@ -94,6 +96,8 @@ const (
 	ColumnDefault = iota
 	ColumnCollapsed
 	ColumnExpanded
+
+	// TODO: Move this to the Modified attribute
 	ColumnAligned
 )
 
@@ -129,6 +133,7 @@ type UI struct {
 	zebraStripe      bool
 	columns          []Column
 	rows             [][]string
+	rowsModified     [][]string
 }
 
 // It is so dumb that go doesn't have this
@@ -319,6 +324,7 @@ func NewUI(data *TabularData) *UI {
 		col.Display = ColumnDefault
 		col.Pinned = false
 		col.Highlight = false
+		col.Modified = false
 
 		// Last column should open expanded
 		if i == len(data.Columns)-1 {
@@ -334,6 +340,7 @@ func NewUI(data *TabularData) *UI {
 		offsetX:       0,
 		offsetY:       0,
 		rows:          data.Rows,
+		rowsModified:  make([][]string, len(data.Rows)),
 		columns:       data.Columns,
 		zebraStripe:   false,
 		filter:        EmptyFilter{},
@@ -375,6 +382,7 @@ eventloop:
 }
 
 // Return indices of rows to display
+// TODO: support rowsModified
 func (ui *UI) filterRows(narrowing bool) {
 	// If we are adding a character to the filter, no need to start from
 	// scratch, this will be a strict subset of our current filter.
