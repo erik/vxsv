@@ -15,7 +15,7 @@ func main() {
 	usage := fmt.Sprintf(`view [x] separated values
 
 Usage:
-  vxsv [-tpm] [--delimiter=DELIM] [--count=N] ([-] | [<PATH>])
+  vxsv [-tpmH] [--delimiter=DELIM] [--count=N] ([-] | [<PATH>])
   vxsv -h | --help
 
 Arguments:
@@ -23,12 +23,12 @@ Arguments:
 
 Options:
   -h --help                 show this help message and exit.
-  -d --delimiter=<DELIM>    separator for values [default: ,].
-  -t --tabs                 use tabs as separator value.
   -p --psql                 parse output of psql cli (used as a pager)
   -m --mysql                parse output of mysql cli
   -n --count=<N>            only read N records [default: all].
-
+  -H --no-headers           don't read headers from first row (for separated values)
+  -d --delimiter=<DELIM>    separator for values [default: ,].
+  -t --tabs                 use tabs as separator value.
 %s`, vxsv.HelpText)
 
 	args, _ := docopt.Parse(usage, nil, true, "0.0.0", false)
@@ -71,7 +71,7 @@ Options:
 		}
 	} else {
 		delimiter := ','
-		if args["-t"] == true {
+		if args["--tabs"] == true {
 			delimiter = '\t'
 		} else if args["--delimiter"] != nil {
 			if delimiterStr, ok := args["--delimiter"].(string); !ok {
@@ -81,7 +81,9 @@ Options:
 			}
 		}
 
-		if data, err = vxsv.ReadCSVFile(reader, delimiter, count); err != nil {
+		readHeaders := args["--no-headers"] == false
+
+		if data, err = vxsv.ReadCSVFile(reader, delimiter, readHeaders, count); err != nil {
 			fmt.Printf("Failed to read CSV file (do you have the right delimiter?): %v\n", err)
 			os.Exit(1)
 		}

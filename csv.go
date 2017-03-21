@@ -3,10 +3,11 @@ package vxsv
 import (
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"io"
 )
 
-func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, error) {
+func ReadCSVFile(reader io.Reader, delimiter rune, readHeader bool, count int64) (*TabularData, error) {
 	csv := csv.NewReader(reader)
 
 	data := &TabularData{
@@ -14,16 +15,19 @@ func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, e
 	}
 
 	csv.Comma = delimiter
-	if headers, err := csv.Read(); err == nil {
-		columns := make([]Column, len(headers))
-		for i, col := range headers {
-			width := clamp(len(col), 1, len(col))
-			columns[i] = Column{Name: col, Width: width}
-		}
 
-		data.Columns = columns
-	} else {
-		return nil, err
+	if readHeader {
+		if headers, err := csv.Read(); err == nil {
+			columns := make([]Column, len(headers))
+			for i, col := range headers {
+				width := clamp(len(col), 1, len(col))
+				columns[i] = Column{Name: col, Width: width}
+			}
+
+			data.Columns = columns
+		} else {
+			return nil, err
+		}
 	}
 
 	var i int64
@@ -34,6 +38,18 @@ func ReadCSVFile(reader io.Reader, delimiter rune, count int64) (*TabularData, e
 			break
 		} else if err != nil {
 			return nil, err
+		}
+
+		// Use first row to set number of columns
+		if !readHeader && i == 0 {
+			data.Columns = make([]Column, len(record))
+			for j := range record {
+				name := fmt.Sprintf("[%d]", j)
+				data.Columns[j] = Column{
+					Name:  name,
+					Width: len(name),
+				}
+			}
 		}
 
 		if len(record) != len(data.Columns) {
