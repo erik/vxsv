@@ -253,7 +253,9 @@ func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 	case termbox.KeyEnter:
 		jsonObj := make(map[string]interface{})
 
-		row := ui.rows[h.rowIdx]
+		rowIdx := ui.filterMatches[h.rowIdx]
+		row := ui.rows[rowIdx]
+
 		for i, col := range ui.columns {
 			str := row[i]
 
