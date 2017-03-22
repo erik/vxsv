@@ -131,7 +131,7 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 		ui.popHandler()
 
 		ui.filter = EmptyFilter{}
-		ui.filterRows(false)
+		ui.filterRows()
 	} else if ev.Key == termbox.KeyEnter {
 		if h.filter == "" {
 			ui.filter = EmptyFilter{}
@@ -143,7 +143,7 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 			ui.pushHandler(NewPopup(ui, errString))
 			return
 		}
-		ui.filterRows(false)
+		ui.filterRows()
 		ui.popHandler()
 	} else {
 		// Fallback to default handling for arrows etc

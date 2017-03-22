@@ -383,31 +383,16 @@ eventloop:
 
 // Return indices of rows to display
 // TODO: support rowsModified
-func (ui *UI) filterRows(narrowing bool) {
-	// If we are adding a character to the filter, no need to start from
-	// scratch, this will be a strict subset of our current filter.
-	if narrowing {
-		rows := make([]int, 0, len(ui.filterMatches))
+func (ui *UI) filterRows() {
+	rows := make([]int, 0, 100)
 
-		for _, rowIdx := range ui.filterMatches {
-			if ui.filter.Matches(ui.rows[rowIdx]) {
-				rows = append(rows, rowIdx)
-			}
+	for i := 0; i < len(ui.rows); i++ {
+		if ui.filter.Matches(ui.rows[i]) {
+			rows = append(rows, i)
 		}
-
-		ui.filterMatches = rows
-	} else {
-		rows := make([]int, 0, 100)
-
-		// FIXME: this +ui.offsetY thing feels like a bug
-		for i := 0; i+ui.offsetY < len(ui.rows); i++ {
-			if ui.filter.Matches(ui.rows[i+ui.offsetY]) {
-				rows = append(rows, i)
-			}
-		}
-
-		ui.filterMatches = rows
 	}
+
+	ui.filterMatches = rows
 }
 
 func (ui *UI) repaint() {
