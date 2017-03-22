@@ -547,6 +547,14 @@ func (h *HandlerPopup) Repaint() {
 			} else {
 				content = " "
 			}
+
+			// Horizontal scrolling
+			if h.offsetX > len(content) {
+				content = ""
+			} else {
+				content = content[h.offsetX:]
+			}
+
 		} else {
 			border = borders[2]
 			content = strings.Repeat("─", popupW)
