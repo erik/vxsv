@@ -216,7 +216,7 @@ func (ui *UI) writeModeLine(mode string, left []string) {
 	right := fmt.Sprintf("%srows %d-%d of %d", filterString, first, last, total)
 	x = len(right)
 	for _, ch := range right {
-		termbox.SetCell(width-x, height-1, ch, termbox.ColorGreen|termbox.AttrBold|termbox.AttrUnderline, termbox.ColorDefault)
+		termbox.SetCell(width-x, height-1, ch, termbox.ColorGreen|termbox.AttrBold, termbox.ColorDefault)
 		x--
 	}
 }
