@@ -527,3 +527,8 @@ func (ui *UI) popHandler() {
 		ui.switchToDefault()
 	}
 }
+
+func (ui *UI) pushErrorPopup(msg string, err error) {
+	errMsg := fmt.Sprintf("Error: %s\n\n%v", msg, err)
+	ui.pushHandler(NewPopup(ui, errMsg))
+}

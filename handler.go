@@ -139,9 +139,7 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 		} else if filter, err := ui.parseFilter(h.filter); err == nil {
 			ui.filter = filter
 		} else {
-			errString := fmt.Sprintf("There was an error in your filter:"+
-				"\n\n%v\n\n%s", err, h.filter)
-			ui.pushHandler(NewPopup(ui, errString))
+			ui.pushErrorPopup("There was an error in your filter: "+h.filter, err)
 			return
 		}
 		ui.filterRows()
@@ -197,16 +195,13 @@ func (h *HandlerShell) applyCommand() {
 	for i := 0; i < len(h.ui.rows); i++ {
 		if !scanner.Scan() {
 			output, _ := ioutil.ReadAll(errOut)
-
-			msg := fmt.Sprintf("Process exited too early!\n\n%s", output)
-			h.ui.pushHandler(NewPopup(h.ui, msg))
+			h.ui.pushErrorPopup("Process exited too early!", fmt.Errorf("%s", output))
 			break
 		}
 
 		if err := scanner.Err(); err != nil {
-			errString := fmt.Sprintf("There was an error running your command:"+
-				"\n\n:%v\n", err)
-			h.ui.pushHandler(NewPopup(h.ui, errString))
+			h.ui.pushErrorPopup("There was an error running your command:", err)
+			break
 		}
 
 		// TODO: Don't modify original copy of data
@@ -469,10 +464,8 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		ui.pushHandler(NewPopup(ui, text))
 
 		break
-		// TODO: handle error for real
 	error:
-		fmt.Printf("%v\n", err)
-		panic(err)
+		ui.pushErrorPopup("Summary stats failed! (probably a bug)", err)
 	case ev.Key == termbox.KeyCtrlG, ev.Key == termbox.KeyEsc:
 		h.selectColumn(-1)
 		ui.popHandler()
