@@ -557,7 +557,7 @@ func (h *HandlerPopup) Repaint() {
 		}
 
 		line := fmt.Sprintf("%s%-*s%s", border[0], popupW, content, border[1])
-		writeString(x, y+i, termbox.ColorWhite, termbox.ColorDefault, line)
+		writeString(x, y+i, termbox.ColorDefault, termbox.ColorDefault, line)
 	}
 
 	h.ui.writeModeLine("Modal", []string{})

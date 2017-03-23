@@ -188,7 +188,7 @@ func (ui *UI) writeModeLine(mode string, left []string) {
 
 	var x int = 0
 	for _, ch := range mode {
-		termbox.SetCell(x, height-1, ch, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault)
+		termbox.SetCell(x, height-1, ch, termbox.ColorDefault|termbox.AttrBold, termbox.ColorDefault)
 		x++
 	}
 
@@ -216,7 +216,7 @@ func (ui *UI) writeModeLine(mode string, left []string) {
 	right := fmt.Sprintf("%srows %d-%d of %d", filterString, first, last, total)
 	x = len(right)
 	for _, ch := range right {
-		termbox.SetCell(width-x, height-1, ch, termbox.ColorGreen|termbox.AttrBold, termbox.ColorBlack)
+		termbox.SetCell(width-x, height-1, ch, termbox.ColorGreen|termbox.AttrBold|termbox.AttrUnderline, termbox.ColorDefault)
 		x--
 	}
 }
@@ -282,15 +282,15 @@ func (ui *UI) writePinned(y int, fg, bg termbox.Attribute, row []string) int {
 }
 
 func (ui *UI) writeColumns(x, y int) {
-	fg := termbox.ColorBlack | termbox.AttrBold
-	bg := termbox.ColorWhite
+	fg := termbox.ColorGreen | termbox.AttrBold
+	bg := termbox.ColorDefault
 
 	colNames := make([]string, len(ui.columns))
 	for i, col := range ui.columns {
 		colNames[i] = col.Name
 	}
 
-	pinBound := ui.writePinned(y, termbox.ColorWhite, termbox.ColorDefault, colNames)
+	pinBound := ui.writePinned(y, termbox.ColorWhite|termbox.AttrBold, termbox.ColorDefault, colNames)
 	x += pinBound
 
 	for i, col := range ui.columns {
@@ -307,7 +307,7 @@ func (ui *UI) writeRow(x, y int, row []string) {
 		fg = termbox.ColorMagenta
 	}
 
-	pinBound := ui.writePinned(y, termbox.ColorCyan, termbox.ColorBlack, row)
+	pinBound := ui.writePinned(y, termbox.ColorCyan, termbox.ColorDefault, row)
 	x += pinBound
 
 	for i, col := range ui.columns {
@@ -408,7 +408,7 @@ func (ui *UI) repaint() {
 		if i+ui.offsetY < len(ui.filterMatches) {
 			ui.writeRow(-ui.offsetX, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
 		} else {
-			writeLine(0, i+1, termbox.ColorWhite|termbox.AttrBold, termbox.ColorBlack, "~")
+			writeLine(0, i+1, termbox.ColorDefault|termbox.AttrBold, termbox.ColorDefault, "~")
 		}
 	}
 
