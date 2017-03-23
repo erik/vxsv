@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/montanaflynn/stats"
 	"github.com/nsf/termbox-go"
@@ -65,7 +66,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		ui.offsetY = 0
 	case ev.Key == termbox.KeySpace:
 		ui.offsetY = clamp(ui.offsetY+vh, 0, maxYOffset)
-	case ev.Ch == 'C', ev.Ch == 'c':
+	case unicode.ToLower(ev.Ch) == 'c':
 		ui.pushHandler(NewColumnSelect(h.ui))
 		ui.offsetX = 0
 	case ev.Ch == 'G':
@@ -85,7 +86,7 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		globalExpanded = !globalExpanded
 	case ev.Ch == '?':
 		ui.pushHandler(NewPopup(h.ui, HelpText))
-	case ev.Ch == 'R', ev.Ch == 'r':
+	case unicode.ToLower(ev.Ch) == 'r':
 		ui.pushHandler(&HandlerRowSelect{*h, h.ui.offsetY})
 	}
 }
@@ -369,7 +370,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
 			return h.rowSorter(j, i)
 		})
-	case ev.Ch == 'C':
+	case unicode.ToLower(ev.Ch) == 'c':
 		h.selectColumn(0)
 	case ev.Ch == 'w':
 		col.toggleDisplay(ColumnCollapsed)
