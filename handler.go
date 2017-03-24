@@ -185,7 +185,8 @@ func (h *HandlerShell) applyCommand() {
 	go func() {
 		defer in.Close()
 
-		for _, row := range h.ui.rows {
+		for i := range h.ui.rows {
+			row := h.ui.getRow(i)
 			io.WriteString(in, row[h.colIdx]+"\n")
 		}
 	}()
@@ -193,6 +194,8 @@ func (h *HandlerShell) applyCommand() {
 	if err := cmd.Start(); err != nil {
 		panic(err)
 	}
+
+	modifiedColumn := make([]string, len(h.ui.rows))
 
 	scanner := bufio.NewScanner(out)
 	for i := 0; i < len(h.ui.rows); i++ {
@@ -207,9 +210,12 @@ func (h *HandlerShell) applyCommand() {
 			break
 		}
 
-		// TODO: Don't modify original copy of data
-		h.ui.rows[i][h.colIdx] = scanner.Text()
+		modifiedColumn[i] = scanner.Text()
 	}
+
+	h.ui.columns[h.colIdx].Modified = true
+	h.ui.columns[h.colIdx].ModifiedValues = modifiedColumn
+	h.ui.columns[h.colIdx].ModifiedCommand = h.command
 }
 
 func (h *HandlerShell) HandleKey(ev termbox.Event) {
@@ -223,6 +229,8 @@ func (h *HandlerShell) HandleKey(ev termbox.Event) {
 
 		if len(trimmed) > 0 {
 			h.applyCommand()
+		} else {
+			h.ui.columns[h.colIdx].Modified = false
 		}
 	}
 }
@@ -253,7 +261,7 @@ func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 		jsonObj := make(map[string]interface{})
 
 		rowIdx := ui.filterMatches[h.rowIdx]
-		row := ui.rows[rowIdx]
+		row := ui.getRow(rowIdx)
 
 		for i, col := range ui.columns {
 			str := row[i]
@@ -322,8 +330,8 @@ func (h *HandlerColumnSelect) selectColumn(idx int) {
 func (h *HandlerColumnSelect) rowSorter(i, j int) bool {
 	ui := h.ui
 
-	row1 := ui.rows[ui.filterMatches[i]]
-	row2 := ui.rows[ui.filterMatches[j]]
+	row1 := ui.getRow(ui.filterMatches[i])
+	row2 := ui.getRow(ui.filterMatches[j])
 
 	v1, err1 := strconv.ParseFloat(row1[h.column], 32)
 	v2, err2 := strconv.ParseFloat(row2[h.column], 32)
@@ -380,7 +388,8 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 			col.Display = ColumnDefault
 		}
 	case ev.Ch == '|':
-		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, ""})
+		commandStr := ui.columns[h.column].ModifiedCommand
+		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, commandStr})
 	case ev.Ch == 's':
 		var (
 			min, max, stdev    float64
@@ -397,7 +406,7 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 
 		data := make(stats.Float64Data, 0, len(ui.filterMatches)+1)
 		for _, rowIdx := range ui.filterMatches {
-			row := ui.rows[rowIdx]
+			row := ui.getRow(rowIdx)
 			trimmed := strings.TrimSpace(row[h.column])
 			if val, err := strconv.ParseFloat(trimmed, 64); err == nil {
 				data = append(data, val)

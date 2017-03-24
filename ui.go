@@ -73,6 +73,18 @@ ROW SELECT MODE
   [ENTER]         Pop open expanded row dialog.
 `
 
+type UI struct {
+	handlers         []ModeHandler
+	rowIdx           int // Selection control
+	offsetX, offsetY int // Pan control
+	filter           Filter
+	filterMatches    []int
+	zebraStripe      bool
+	allExpanded      bool
+	columns          []Column
+	rows             [][]string
+}
+
 type Column struct {
 	Name  string
 	Width int
@@ -82,7 +94,9 @@ type Column struct {
 	Pinned    bool
 	Highlight bool
 
-	Modified bool
+	Modified        bool
+	ModifiedValues  []string
+	ModifiedCommand string
 }
 
 type TabularData struct {
@@ -122,19 +136,6 @@ func (c Column) displayWidth() int {
 	}
 
 	panic("TODO: this is a bug")
-}
-
-type UI struct {
-	handlers         []ModeHandler
-	rowIdx           int // Selection control
-	offsetX, offsetY int // Pan control
-	filter           Filter
-	filterMatches    []int
-	zebraStripe      bool
-	allExpanded      bool
-	columns          []Column
-	rows             [][]string
-	rowsModified     [][]string
 }
 
 // It is so dumb that go doesn't have this
@@ -341,7 +342,6 @@ func NewUI(data *TabularData) *UI {
 		offsetX:       0,
 		offsetY:       0,
 		rows:          data.Rows,
-		rowsModified:  make([][]string, len(data.Rows)),
 		columns:       data.Columns,
 		zebraStripe:   false,
 		allExpanded:   false,
@@ -384,12 +384,11 @@ eventloop:
 }
 
 // Return indices of rows to display
-// TODO: support rowsModified
 func (ui *UI) filterRows() {
 	rows := make([]int, 0, 100)
 
 	for i := 0; i < len(ui.rows); i++ {
-		if ui.filter.Matches(ui.rows[i]) {
+		if ui.filter.Matches(ui.getRow(i)) {
 			rows = append(rows, i)
 		}
 	}
@@ -408,7 +407,8 @@ func (ui *UI) repaint() {
 
 	for i := 0; i < vh; i++ {
 		if i+ui.offsetY < len(ui.filterMatches) {
-			ui.writeRow(-ui.offsetX, i+1, ui.rows[ui.filterMatches[i+ui.offsetY]])
+			row := ui.getRow(ui.filterMatches[i+ui.offsetY])
+			ui.writeRow(-ui.offsetX, i+1, row)
 		} else {
 			writeLine(0, i+1, termbox.ColorDefault|termbox.AttrBold, termbox.ColorDefault, "~")
 		}
@@ -526,4 +526,24 @@ func (ui *UI) popHandler() {
 func (ui *UI) pushErrorPopup(msg string, err error) {
 	errMsg := fmt.Sprintf("Error: %s\n\n%v", msg, err)
 	ui.pushHandler(NewPopup(ui, errMsg))
+}
+
+func (ui *UI) getRow(idx int) []string {
+	row := make([]string, len(ui.columns))
+
+	if idx < 0 || idx >= len(ui.rows) {
+		panic(fmt.Errorf("Overflowed row bounds: %d [0, %d]", idx, len(ui.rows)))
+	}
+
+	origRow := ui.rows[idx]
+
+	for i, col := range ui.columns {
+		if col.Modified {
+			row[i] = col.ModifiedValues[idx]
+		} else {
+			row[i] = origRow[i]
+		}
+	}
+
+	return row
 }
