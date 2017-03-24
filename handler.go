@@ -76,14 +76,17 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case ev.Ch == 'Z':
 		ui.zebraStripe = !ui.zebraStripe
 	case ev.Ch == 'X':
-		for _, col := range ui.columns {
-			if globalExpanded {
-				col.Display = ColumnExpanded
-			} else {
-				col.Display = ColumnDefault
-			}
+		var displayMode ColumnDisplay = ColumnExpanded
+
+		if ui.allExpanded {
+			displayMode = ColumnDefault
 		}
-		globalExpanded = !globalExpanded
+
+		for i := range ui.columns {
+			ui.columns[i].Display = displayMode
+		}
+
+		ui.allExpanded = !ui.allExpanded
 	case ev.Ch == '?':
 		ui.pushHandler(NewPopup(h.ui, HelpText))
 	case unicode.ToLower(ev.Ch) == 'r':
@@ -264,16 +267,13 @@ func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 			} else {
 				jsonObj[col.Name] = str
 			}
-
 		}
 
-		jsonStr, err := json.MarshalIndent(jsonObj, "", "  ")
-		// TODO: This should be handled
-		if err != nil {
-			panic(err)
+		if jsonStr, err := json.MarshalIndent(jsonObj, "", "  "); err == nil {
+			ui.pushHandler(NewPopup(ui, string(jsonStr)))
+		} else {
+			ui.pushErrorPopup("Failed to dump row as json (this is a bug)", err)
 		}
-
-		ui.pushHandler(NewPopup(ui, string(jsonStr)))
 	default:
 		def := &HandlerDefault{ui}
 		def.HandleKey(ev)

@@ -131,6 +131,7 @@ type UI struct {
 	filter           Filter
 	filterMatches    []int
 	zebraStripe      bool
+	allExpanded      bool
 	columns          []Column
 	rows             [][]string
 	rowsModified     [][]string
@@ -282,7 +283,7 @@ func (ui *UI) writePinned(y int, fg, bg termbox.Attribute, row []string) int {
 }
 
 func (ui *UI) writeColumns(x, y int) {
-	fg := termbox.ColorGreen | termbox.AttrBold
+	fg := termbox.ColorGreen | termbox.AttrBold | termbox.AttrUnderline
 	bg := termbox.ColorDefault
 
 	colNames := make([]string, len(ui.columns))
@@ -343,6 +344,7 @@ func NewUI(data *TabularData) *UI {
 		rowsModified:  make([][]string, len(data.Rows)),
 		columns:       data.Columns,
 		zebraStripe:   false,
+		allExpanded:   false,
 		filter:        EmptyFilter{},
 		filterMatches: filterMatches,
 	}
@@ -456,13 +458,6 @@ func (ui *UI) columnOffset(colIdx int) (offset int, width int) {
 
 	return offset, width
 }
-
-// TODO: Write me, stop manually scrolling
-func (ui *UI) scroll(rows int) {
-
-}
-
-var globalExpanded = false
 
 // Find the first visually displayed column
 func (ui *UI) findFirstColumn() int {
