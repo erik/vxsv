@@ -69,6 +69,8 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	case unicode.ToLower(ev.Ch) == 'c':
 		ui.pushHandler(NewColumnSelect(h.ui))
 		ui.offsetX = 0
+	case unicode.ToLower(ev.Ch) == 'r':
+		ui.pushHandler(&HandlerRowSelect{*h, h.ui.offsetY})
 	case ev.Ch == 'G':
 		ui.offsetY = maxYOffset
 	case ev.Ch == 'g':
@@ -89,8 +91,6 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		ui.allExpanded = !ui.allExpanded
 	case ev.Ch == '?':
 		ui.pushHandler(NewPopup(h.ui, HelpText))
-	case unicode.ToLower(ev.Ch) == 'r':
-		ui.pushHandler(&HandlerRowSelect{*h, h.ui.offsetY})
 	}
 }
 
@@ -222,6 +222,7 @@ func (h *HandlerShell) HandleKey(ev termbox.Event) {
 	if handlePromptKey(ev, &h.command) {
 		return
 	} else if ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG {
+		h.ui.columns[h.colIdx].Modified = false
 		h.ui.popHandler()
 	} else if ev.Key == termbox.KeyEnter {
 		trimmed := strings.TrimSpace(h.command)

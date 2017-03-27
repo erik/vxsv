@@ -20,6 +20,7 @@ vxsv is a modal viewer, meaning that actions are only valid in certain
 contexts.
 
 DEFAULT MODE
+============
 
   Ctrl l          refresh screen
   Ctrl a          pan to beginning of line
@@ -35,9 +36,10 @@ DEFAULT MODE
   Z               toggle zebra stripes
   X               toggle expanding all columns
   ?               show this help dialog
-  Ctrl c, q       exit
+  Ctrl c          exit
 
 COLUMN SELECT MODE
+==================
 
   <arrow keys>    select column
   Ctrl a          select first column
@@ -46,31 +48,50 @@ COLUMN SELECT MODE
   >               sort by column, descending
   w               toggle collapsing this column
   x               toggle expanding this column
-  .               toggle pinning column
-  s               show summary statistics for this column
   a               line up decimal points for floats in this column
+  .               toggle pinning this column
+  |               pipe column values into shell, see ** SHELL COMMAND MODE **
+  s               show summary statistics for this column
   [ESC], Ctrl g   return to ** DEFAULT MODE **
 
 FILTER MODE
+===========
 
-  Filter strings can take two forms:
+  Filter expressions can take two forms:
 
     1. Column filter: "column_name CMP value"
        * CMP is one of (==, !=, <, <=, >, >=)
        * Display rows where the given column's value for the
          row makes the comparison evaluate to true.
+
     2. Row filter: "filter_string"
        * Display rows where any column in the row matches the
          filter string.
 
-  [ESC], Ctrl g   clear filter and return to ** DEFAULT MODE **
-  Ctrl w          clear filter
-  [ENTER]         apply filter and return to default mode
+  [ESC], Ctrl g   clear filter and return to previous mode
+  Ctrl w, Ctrl u  clear entered filter expression
+  [ENTER]         apply filter and return to previous mode
 
 ROW SELECT MODE
+===============
 
   <arrow keys>    select row
-  [ENTER]         Pop open expanded row dialog.
+  [ENTER]         pop open expanded row dialog.
+
+SHELL COMMAND MODE
+==================
+  Pipe selected column's values into an external process, setting the new value
+  to the output of the process. Each value is printed on a new line, which will
+  work with most standard unix pipe commands.
+
+  Examples:
+     jq -c '.foo.bar.baz' -       # extract json values from col with jq
+     awk '{ println $1 * 100 }'   # multiply current col in each row by 100
+     sed 's/1/true/g'             # simple remapping of values
+
+  [ESC], Ctrl g   exit shell command mode and revert to original values
+  Ctrl w, Ctrl u  clear entered shell command
+  [ENTER]         run shell command and return to previous mode
 `
 
 type UI struct {
