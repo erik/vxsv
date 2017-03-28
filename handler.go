@@ -395,6 +395,22 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 	case ev.Ch == '|':
 		commandStr := ui.columns[h.column].ModifiedCommand
 		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, commandStr})
+	case ev.Ch == 'u':
+		rows := make([]int, 0, len(ui.filterMatches))
+		set := make(map[string]struct{})
+
+		for _, i := range ui.filterMatches {
+			row := ui.getRow(i)
+			val := row[h.column]
+
+			// Take the first row with each value
+			if _, present := set[val]; !present {
+				set[val] = struct{}{}
+				rows = append(rows, i)
+			}
+		}
+
+		ui.filterMatches = rows
 	case ev.Ch == 's':
 		var (
 			min, max, stdev    float64

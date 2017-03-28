@@ -51,6 +51,7 @@ COLUMN SELECT MODE
   a               line up decimal points for floats in this column
   .               toggle pinning this column
   |               pipe column values into shell, see ** SHELL COMMAND MODE **
+  u               filter rows to unique values for this column
   s               show summary statistics for this column
   [ESC], Ctrl g   return to ** DEFAULT MODE **
 
@@ -209,7 +210,7 @@ func (ui *UI) writeModeLine(mode string, left []string) {
 		termbox.SetCell(i, height-1, ' ', termbox.ColorDefault, termbox.ColorDefault)
 	}
 
-	var x int = 0
+	var x int
 	for _, ch := range mode {
 		termbox.SetCell(x, height-1, ch, termbox.ColorDefault|termbox.AttrBold, termbox.ColorDefault)
 		x++
