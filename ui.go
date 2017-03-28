@@ -107,13 +107,13 @@ type UI struct {
 }
 
 type Column struct {
-	Name  string
-	Width int
+	Name string
 
 	// Display options
 	Display   ColumnDisplay
 	Pinned    bool
 	Highlight bool
+	Width     int
 
 	Modified        bool
 	ModifiedValues  []string
@@ -478,6 +478,19 @@ func (ui *UI) columnOffset(colIdx int) (offset int, width int) {
 	}
 
 	return offset, width
+}
+
+func (ui *UI) recomputeColumnWidth(colIdx int) {
+	width := len(ui.columns[colIdx].Name)
+
+	for _, idx := range ui.filterMatches {
+		row := ui.getRow(idx)
+		if len(row[colIdx]) > width {
+			width = len(row[colIdx])
+		}
+	}
+
+	ui.columns[colIdx].Width = width
 }
 
 // Find the first visually displayed column

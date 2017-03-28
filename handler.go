@@ -234,6 +234,8 @@ func (h *HandlerShell) HandleKey(ev termbox.Event) {
 			h.ui.columns[h.colIdx].Modified = false
 		}
 	}
+
+	h.ui.recomputeColumnWidth(h.colIdx)
 }
 
 func (h *HandlerShell) Repaint() {
@@ -380,8 +382,10 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		col.toggleDisplay(ColumnCollapsed)
 	case ev.Ch == 'x':
 		col.toggleDisplay(ColumnExpanded)
+		ui.recomputeColumnWidth(h.column)
 	case ev.Ch == 'a':
 		col.toggleDisplay(ColumnAligned)
+		ui.recomputeColumnWidth(h.column)
 	case ev.Ch == '.':
 		col.Pinned = !col.Pinned
 
