@@ -8,7 +8,7 @@ as a pager for scrolling through Postgres / MySQL command line output.
 **warning**: This is going to be buggy. Probably shouldn't completely replace
              `less` just yet.
 
-[![asciicast](https://asciinema.org/a/0t5awh75lm7qntrkbrsslb41u.png)](https://asciinema.org/a/0t5awh75lm7qntrkbrsslb41u)
+[![asciicast](https://asciinema.org/a/109283.png)](https://asciinema.org/a/109283)
 
 ## installation
 
