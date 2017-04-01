@@ -330,7 +330,16 @@ func (h *HandlerColumnSelect) selectColumn(idx int) {
 	}
 }
 
-func (h *HandlerColumnSelect) rowSorter(i, j int) bool {
+
+func (h *HandlerColumnSelect) Len() int {
+	return len(h.ui.filterMatches)
+}
+
+func (h *HandlerColumnSelect) Swap(i, j int)      {
+	h.ui.filterMatches[i], h.ui.filterMatches[j] = h.ui.filterMatches[j], h.ui.filterMatches[i]
+}
+
+func (h *HandlerColumnSelect) Less(i, j int) bool {
 	ui := h.ui
 
 	row1 := ui.getRow(ui.filterMatches[i])
@@ -369,13 +378,9 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		next := ui.findNextColumn(h.column, -1)
 		h.selectColumn(clamp(next, 0, len(ui.columns)-1))
 	case ev.Ch == '<':
-		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
-			return h.rowSorter(i, j)
-		})
+		sort.Stable(h)
 	case ev.Ch == '>':
-		sort.SliceStable(ui.filterMatches, func(i, j int) bool {
-			return h.rowSorter(j, i)
-		})
+		sort.Stable(sort.Reverse(h))
 	case unicode.ToLower(ev.Ch) == 'c':
 		h.selectColumn(0)
 	case ev.Ch == 'w':

@@ -12,8 +12,6 @@ as a pager for scrolling through Postgres / MySQL command line output.
 
 ## installation
 
-Requires Go >= 1.8 to build.
-
 ```bash
 go get -u github.com/erik/vxsv/cmd/vxsv
 ```
