@@ -5,9 +5,6 @@ view x separated values.
 A terminal viewer for tabular data (CSV, TSV, etc.) Can also be used
 as a pager for scrolling through Postgres / MySQL command line output.
 
-**warning**: This is going to be buggy. Probably shouldn't completely replace
-             `less` just yet.
-
 [![asciicast](https://asciinema.org/a/109283.png)](https://asciinema.org/a/109283)
 
 ## installation
