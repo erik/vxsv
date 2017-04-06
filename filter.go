@@ -52,6 +52,8 @@ const (
 	CmpGte
 	CmpLt
 	CmpLte
+	CmpMatch
+	CmpNoMatch
 )
 
 type ColumnFilter struct {
@@ -62,9 +64,9 @@ type ColumnFilter struct {
 	colIdx     int
 }
 
-const OpChars = "!=><"
+const OpChars = "!=><~"
 
-var CmpOpRegex = regexp.MustCompile(`^(.+?)([!=><]+)(.+)$`)
+var CmpOpRegex = regexp.MustCompile(`^(.+?)([!=><~]+)(.+)$`)
 
 // parse a filter string into an instance of the Filter interface
 func (ui *UI) parseFilter(fs string) (Filter, error) {
@@ -111,6 +113,10 @@ func (ui *UI) parseFilter(fs string) (Filter, error) {
 			filter.cmpType = CmpLt
 		case "<=":
 			filter.cmpType = CmpLte
+		case "~":
+			filter.cmpType = CmpMatch
+		case "!~":
+			filter.cmpType = CmpNoMatch
 		default:
 			return nil, fmt.Errorf("No such comparison operation: \"%s\"", oper)
 		}
@@ -146,12 +152,16 @@ func (f ColumnFilter) Matches(row []string) bool {
 			return valStr < f.value
 		case CmpLte:
 			return valStr <= f.value
+		case CmpMatch:
+			return strings.Contains(valStr, f.value)
+		case CmpNoMatch:
+			return !strings.Contains(valStr, f.value)
 		}
 	} else if val, err := strconv.ParseFloat(strings.TrimSpace(valStr), 64); err == nil {
 		switch f.cmpType {
-		case CmpEq:
+		case CmpEq, CmpMatch:
 			return val == f.valueFloat
-		case CmpNeq:
+		case CmpNeq, CmpNoMatch:
 			return val != f.valueFloat
 		case CmpGt:
 			return val > f.valueFloat
