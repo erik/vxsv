@@ -60,9 +60,11 @@ FILTER MODE
   Filter expressions can take two forms:
 
     1. Column filter: "column_name CMP value"
-       * CMP is one of (==, !=, <, <=, >, >=)
+       * CMP is one of (==, !=, <, <=, >, >=, ~, !~)
        * Display rows where the given column's value for the
          row makes the comparison evaluate to true.
+       * Read '~' and '!~' as "matches" and "doesn't match",
+         respectively.
 
     2. Row filter: "filter_string"
        * Display rows where any column in the row matches the
