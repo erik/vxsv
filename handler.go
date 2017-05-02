@@ -38,8 +38,8 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 	vw, vh := ui.viewSize()
 
 	maxYOffset := clamp(len(ui.filterMatches)-(vh-2), 0, len(ui.filterMatches)-1)
-	lastColumnOffset, _ := ui.columnOffset(len(ui.columns) - 1)
-	endOfLine := lastColumnOffset - vw
+	lastColumnOffset, colWidth := ui.columnOffset(len(ui.columns) - 1)
+	endOfLine := (lastColumnOffset + colWidth) - vw
 
 	// prevent funky scrolling behavior when row is smaller than screen
 	if endOfLine < 0 {
@@ -330,12 +330,11 @@ func (h *HandlerColumnSelect) selectColumn(idx int) {
 	}
 }
 
-
 func (h *HandlerColumnSelect) Len() int {
 	return len(h.ui.filterMatches)
 }
 
-func (h *HandlerColumnSelect) Swap(i, j int)      {
+func (h *HandlerColumnSelect) Swap(i, j int) {
 	h.ui.filterMatches[i], h.ui.filterMatches[j] = h.ui.filterMatches[j], h.ui.filterMatches[i]
 }
 
