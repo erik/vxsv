@@ -257,9 +257,9 @@ func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 	case termbox.KeyEsc, termbox.KeyCtrlG:
 		ui.popHandler()
 	case termbox.KeyArrowUp:
-		h.rowIdx = clamp(h.rowIdx-1, 0, len(ui.filterMatches))
+		h.rowIdx = clamp(h.rowIdx-1, 0, len(ui.filterMatches)-1)
 	case termbox.KeyArrowDown:
-		h.rowIdx = clamp(h.rowIdx+1, 0, len(ui.filterMatches))
+		h.rowIdx = clamp(h.rowIdx+1, 0, len(ui.filterMatches)-1)
 	case termbox.KeyEnter:
 		jsonObj := make(map[string]interface{})
 
