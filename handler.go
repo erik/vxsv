@@ -53,13 +53,13 @@ func (h *HandlerDefault) HandleKey(ev termbox.Event) {
 		ui.offsetX = 0
 	case ev.Key == termbox.KeyCtrlE:
 		ui.offsetX = endOfLine
-	case ev.Key == termbox.KeyArrowRight:
+	case ev.Key == termbox.KeyArrowRight || ev.Ch == 'l':
 		ui.offsetX = clamp(ui.offsetX+5, 0, endOfLine)
-	case ev.Key == termbox.KeyArrowLeft:
+	case ev.Key == termbox.KeyArrowLeft || ev.Ch == 'h':
 		ui.offsetX = clamp(ui.offsetX-5, 0, endOfLine)
-	case ev.Key == termbox.KeyArrowUp:
+	case ev.Key == termbox.KeyArrowUp || ev.Ch == 'k':
 		ui.offsetY = clamp(ui.offsetY-1, 0, maxYOffset)
-	case ev.Key == termbox.KeyArrowDown:
+	case ev.Key == termbox.KeyArrowDown || ev.Ch == 'j':
 		ui.offsetY = clamp(ui.offsetY+1, 0, maxYOffset)
 	case ev.Ch == '/', ev.Key == termbox.KeyCtrlR:
 		ui.pushHandler(&HandlerFilter{*h, ui.filter.String()})
@@ -253,14 +253,14 @@ type HandlerRowSelect struct {
 func (h *HandlerRowSelect) HandleKey(ev termbox.Event) {
 	ui := h.ui
 
-	switch ev.Key {
-	case termbox.KeyEsc, termbox.KeyCtrlG:
+	switch {
+	case ev.Key == termbox.KeyEsc || ev.Key == termbox.KeyCtrlG:
 		ui.popHandler()
-	case termbox.KeyArrowUp:
+	case ev.Key == termbox.KeyArrowUp || ev.Ch == 'k':
 		h.rowIdx = clamp(h.rowIdx-1, 0, len(ui.filterMatches)-1)
-	case termbox.KeyArrowDown:
+	case ev.Key == termbox.KeyArrowDown || ev.Ch == 'j':
 		h.rowIdx = clamp(h.rowIdx+1, 0, len(ui.filterMatches)-1)
-	case termbox.KeyEnter:
+	case ev.Key == termbox.KeyEnter:
 		jsonObj := make(map[string]interface{})
 
 		rowIdx := ui.filterMatches[h.rowIdx]
@@ -370,10 +370,10 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		h.selectColumn(ui.findFirstColumn())
 	case ev.Key == termbox.KeyCtrlE:
 		h.selectColumn(len(ui.columns) - 1)
-	case ev.Key == termbox.KeyArrowRight:
+	case ev.Key == termbox.KeyArrowRight || ev.Ch == 'l':
 		next := ui.findNextColumn(h.column, 1)
 		h.selectColumn(clamp(next, 0, len(ui.columns)-1))
-	case ev.Key == termbox.KeyArrowLeft:
+	case ev.Key == termbox.KeyArrowLeft || ev.Ch == 'h':
 		next := ui.findNextColumn(h.column, -1)
 		h.selectColumn(clamp(next, 0, len(ui.columns)-1))
 	case ev.Ch == '<':
@@ -607,14 +607,14 @@ func (h *HandlerPopup) HandleKey(ev termbox.Event) {
 		maxScroll = 0
 	}
 
-	switch ev.Key {
-	case termbox.KeyArrowLeft:
+	switch {
+	case ev.Key == termbox.KeyArrowLeft || ev.Ch == 'h':
 		h.offsetX = clamp(h.offsetX-5, 0, 9999)
-	case termbox.KeyArrowRight:
+	case ev.Key == termbox.KeyArrowRight || ev.Ch == 'l':
 		h.offsetX = clamp(h.offsetX+5, 0, 9999)
-	case termbox.KeyArrowUp:
+	case ev.Key == termbox.KeyArrowUp || ev.Ch == 'k':
 		h.offsetY = clamp(h.offsetY-1, 0, maxScroll)
-	case termbox.KeyArrowDown:
+	case ev.Key == termbox.KeyArrowDown || ev.Ch == 'j':
 		h.offsetY = clamp(h.offsetY+1, 0, maxScroll)
 	}
 }

@@ -24,7 +24,7 @@ DEFAULT MODE
   Ctrl l          refresh screen
   Ctrl a          pan to beginning of line
   Ctrl e          pan to end of line
-  <arrow keys>    scroll / pan control
+  <arrows> / hjkl scroll / pan control
   Ctrl r, /       enter ** FILTER MODE **
   [ENTER]         pop open dialog showing row in detail
   [SPACE]         scroll down one screen
@@ -40,7 +40,7 @@ DEFAULT MODE
 COLUMN SELECT MODE
 ==================
 
-  <arrow keys>    select column
+  <arrows> / hl   select column
   Ctrl a          select first column
   Ctrl e          select last column
   <               sort by column, ascending
@@ -77,7 +77,7 @@ FILTER MODE
 ROW SELECT MODE
 ===============
 
-  <arrow keys>    select row
+  <arrows> / jk   select row
   [ENTER]         pop open expanded row dialog.
 
 SHELL COMMAND MODE
