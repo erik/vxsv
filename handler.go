@@ -157,8 +157,9 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 
 type HandlerShell struct {
 	HandlerDefault
-	colIdx  int
-	command string
+	colIdx   int
+	command  string
+	isFilter bool
 }
 
 func (h *HandlerShell) applyCommand() {
@@ -195,27 +196,36 @@ func (h *HandlerShell) applyCommand() {
 		panic(err)
 	}
 
-	modifiedColumn := make([]string, len(h.ui.rows))
+	if h.isFilter {
+		modifiedColumn := make([]string, len(h.ui.rows))
 
-	scanner := bufio.NewScanner(out)
-	for i := 0; i < len(h.ui.rows); i++ {
-		if !scanner.Scan() {
-			output, _ := ioutil.ReadAll(errOut)
-			h.ui.pushErrorPopup("Process exited too early!", fmt.Errorf("%s", output))
-			break
+		scanner := bufio.NewScanner(out)
+		for i := 0; i < len(h.ui.rows); i++ {
+			if !scanner.Scan() {
+				output, _ := ioutil.ReadAll(errOut)
+				h.ui.pushErrorPopup("Process exited too early!", fmt.Errorf("%s", output))
+				break
+			}
+
+			if err := scanner.Err(); err != nil {
+				h.ui.pushErrorPopup("There was an error running your command:", err)
+				break
+			}
+
+			modifiedColumn[i] = scanner.Text()
 		}
 
-		if err := scanner.Err(); err != nil {
+		h.ui.columns[h.colIdx].Modified = true
+		h.ui.columns[h.colIdx].ModifiedValues = modifiedColumn
+		h.ui.columns[h.colIdx].ModifiedCommand = h.command
+	} else {
+		output, err := ioutil.ReadAll(out)
+		if err != nil {
 			h.ui.pushErrorPopup("There was an error running your command:", err)
-			break
 		}
 
-		modifiedColumn[i] = scanner.Text()
+		h.ui.pushHandler(NewPopup(h.ui, string(output)))
 	}
-
-	h.ui.columns[h.colIdx].Modified = true
-	h.ui.columns[h.colIdx].ModifiedValues = modifiedColumn
-	h.ui.columns[h.colIdx].ModifiedCommand = h.command
 }
 
 func (h *HandlerShell) HandleKey(ev termbox.Event) {
@@ -398,7 +408,10 @@ func (h *HandlerColumnSelect) HandleKey(ev termbox.Event) {
 		}
 	case ev.Ch == '|':
 		commandStr := ui.columns[h.column].ModifiedCommand
-		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, commandStr})
+		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, commandStr, true})
+	case ev.Ch == '!':
+		commandStr := ui.columns[h.column].ModifiedCommand
+		h.ui.pushHandler(&HandlerShell{HandlerDefault{ui}, h.column, commandStr, false})
 	case ev.Ch == 'u':
 		rows := make([]int, 0, len(ui.filterMatches))
 		set := make(map[string]struct{})
