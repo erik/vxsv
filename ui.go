@@ -26,7 +26,6 @@ DEFAULT MODE
   Ctrl e          pan to end of line
   <arrows> / hjkl scroll / pan control
   Ctrl r, /       enter ** FILTER MODE **
-  [ENTER]         pop open dialog showing row in detail
   [SPACE]         scroll down one screen
   C               enter ** COLUMN SELECT MODE **
   R               enter ** ROW SELECT MODE **
