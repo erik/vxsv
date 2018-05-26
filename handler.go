@@ -157,9 +157,10 @@ func (h *HandlerFilter) HandleKey(ev termbox.Event) {
 
 type HandlerShell struct {
 	HandlerDefault
-	colIdx   int
-	command  string
-	isFilter bool
+
+	colIdx        int
+	command       string
+	replaceValues bool
 }
 
 func (h *HandlerShell) applyCommand() {
@@ -196,7 +197,7 @@ func (h *HandlerShell) applyCommand() {
 		panic(err)
 	}
 
-	if h.isFilter {
+	if h.replaceValues {
 		modifiedColumn := make([]string, len(h.ui.rows))
 
 		scanner := bufio.NewScanner(out)

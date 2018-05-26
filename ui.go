@@ -49,7 +49,8 @@ COLUMN SELECT MODE
   x               toggle expanding this column
   a               line up decimal points for floats in this column
   .               toggle pinning this column
-  |               pipe column values into shell, see ** SHELL COMMAND MODE **
+  !               pipe column into shell, see ** SHELL COMMAND MODE **
+  |               like '!', but replace column with output
   u               filter rows to unique values for this column
   s               show summary statistics for this column
   [ESC], Ctrl g   return to ** DEFAULT MODE **
@@ -82,14 +83,22 @@ ROW SELECT MODE
 
 SHELL COMMAND MODE
 ==================
-  Pipe selected column's values into an external process, setting the new value
-  to the output of the process. Each value is printed on a new line, which will
-  work with most standard unix pipe commands.
+  Pipe selected column's values into an external shell process.
 
-  Examples:
+  Each value is printed on a new line, which will work with most standard Unix
+  pipe commands.
+
+  Using '|' will replace the column with the output of the shell command, and
+  '!' will show the output of the command as a popup.
+
+  '|' Examples:
      jq -c '.foo.bar.baz' -       # extract json values from col with jq
      awk '{ println $1 * 100 }'   # multiply current col in each row by 100
      sed 's/1/true/g'             # simple remapping of values
+
+  '!' Examples:
+     sort | uniq -c | sort -r     # show unique values, ordered by frequency
+     grep -v 'foo'                # filter out column values containing 'foo'
 
   [ESC], Ctrl g   exit shell command mode and revert to original values
   Ctrl w, Ctrl u  clear entered shell command
