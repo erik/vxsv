@@ -203,7 +203,7 @@ func NewUI(data *TabularData) *UI {
 		offsetY:       0,
 		rows:          data.Rows,
 		columns:       data.Columns,
-		zebraStripe:   false,
+		zebraStripe:   true,
 		allExpanded:   false,
 		filter:        EmptyFilter{},
 		filterMatches: filterMatches,
