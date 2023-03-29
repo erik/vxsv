@@ -616,9 +616,12 @@ func (h *HandlerPopup) HandleKey(ev termbox.Event) {
 		h.ui.popHandler()
 	}
 
-	_, maxScroll := h.size()
-	if maxScroll >= len(h.content) {
-		maxScroll = 0
+	maxScroll := 0
+	_, popupH := h.size()
+
+	// Prevent scrolling off end of content.
+	if popupH < len(h.content) {
+		maxScroll = len(h.content) - popupH
 	}
 
 	switch {
